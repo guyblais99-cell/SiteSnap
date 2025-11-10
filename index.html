@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Site Snap</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        /* Prevent pull-to-refresh on mobile to feel more native */
+        /* Ensure content doesn't get hidden under notches on newer phones */
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         html, body { overscroll-behavior-y: contain; }
-        .view-container { transition: opacity 0.2s ease-in-out; }
+        .view-container { transition: opacity 0.2s ease-in-out; width: 100%; }
         .hidden-view { display: none; opacity: 0; }
         .active-view { display: block; opacity: 1; }
         .loader {
@@ -22,13 +23,14 @@
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 h-screen flex flex-col">
+<!-- Use h-[100dvh] for Dynamic Viewport Height on mobile to avoid browser bar issues -->
+<body class="bg-gray-100 text-gray-800 h-[100dvh] flex flex-col">
 
-    <!-- Navigation Bar (Hidden on Login) -->
-    <nav id="main-nav" class="bg-white border-b border-gray-200 px-4 py-4 flex items-center sticky top-0 z-40 shadow-sm flex-shrink-0 hidden">
+    <!-- Navigation Bar -->
+    <nav id="main-nav" class="bg-white border-b border-gray-200 px-4 py-3 flex items-center sticky top-0 z-40 shadow-sm flex-shrink-0 hidden">
         <div class="w-full max-w-5xl mx-auto flex items-center">
             <div id="nav-breadcrumbs" class="flex items-center text-lg font-bold truncate flex-1">
-                 <!-- Breadcrumbs injected here by JS -->
+                 <!-- Breadcrumbs injected here -->
             </div>
             <div class="flex items-center">
                 <span id="workspace-badge" class="hidden md:inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded"></span>
@@ -38,16 +40,13 @@
     </nav>
 
     <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto relative" id="main-content">
+    <main class="flex-1 overflow-y-auto relative w-full" id="main-content">
         
         <!-- Initial Loading State -->
         <div id="initial-loader" class="absolute inset-0 flex items-center justify-center bg-gray-100 z-50 px-8 text-center">
             <div id="loader-spinner" class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
             <div id="loader-error" class="hidden">
                 <div class="bg-red-100 text-red-800 p-4 rounded-2xl mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
                     <h3 class="font-bold text-lg">Connection Failed</h3>
                     <p id="loader-error-msg" class="text-sm mt-2">Could not connect to database.</p>
                 </div>
@@ -56,8 +55,8 @@
         </div>
 
         <!-- LOGIN VIEW -->
-        <div id="login-view" class="view-container active-view h-full flex items-center justify-center p-4 -mt-10">
-            <div class="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full mx-auto border border-gray-100">
+        <div id="login-view" class="view-container active-view h-full flex items-center justify-center p-6">
+            <div class="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full mx-auto border border-gray-100 -mt-20">
                 <div class="text-center mb-8">
                     <div class="bg-blue-600 text-white p-4 rounded-2xl inline-flex mb-4 shadow-md">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,10 +71,9 @@
                 <div class="space-y-5">
                     <div>
                         <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">Workspace ID</label>
-                        <input type="text" id="workspace-id-input" placeholder="e.g., Jobsite-Alpha" class="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:ring-0 focus:border-blue-600 outline-none transition-all font-medium text-lg" onkeyup="if(event.key === 'Enter') joinWorkspace()">
-                        <p class="text-xs text-gray-500 mt-2 ml-1">Enter your team's shared ID.</p>
+                        <input type="text" id="workspace-id-input" placeholder="e.g., Jobsite-Alpha" class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:ring-0 focus:border-blue-600 outline-none transition-all font-medium text-lg" onkeyup="if(event.key === 'Enter') joinWorkspace()">
                     </div>
-                    <button onclick="joinWorkspace()" id="join-btn" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-all active:scale-95 shadow-md">
+                    <button onclick="joinWorkspace()" id="join-btn" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-all active:scale-95 shadow-md text-lg">
                         Join Workspace
                     </button>
                 </div>
@@ -83,17 +81,17 @@
         </div>
 
         <!-- BUILDS VIEW -->
-        <div id="builds-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto">
-            <div class="flex justify-between items-center mb-6 pt-2">
+        <div id="builds-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto flex flex-col justify-start">
+            <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-extrabold text-gray-900">Build Folders</h1>
                 <button onclick="openModal('new-build-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center transition-all shadow-sm active:scale-95">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
-                    New Build
+                    New
                 </button>
             </div>
-            <div id="builds-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="builds-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                 <!-- Build items injected here -->
             </div>
              <div id="no-builds-msg" class="hidden flex flex-col items-center justify-center py-16 text-gray-500">
@@ -103,51 +101,45 @@
                     </svg>
                 </div>
                 <p class="text-xl font-bold text-gray-700">No builds yet</p>
-                <p class="text-gray-500 mt-1">Create your first project folder.</p>
             </div>
         </div>
 
         <!-- TASKS VIEW -->
-        <div id="tasks-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto">
-            <div class="flex justify-between items-center mb-6 pt-2">
+        <div id="tasks-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto flex flex-col justify-start">
+            <div class="flex justify-between items-center mb-6">
                 <div class="overflow-hidden">
                      <h1 id="current-build-title" class="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate pr-4 leading-tight">Build Name</h1>
                      <p class="text-gray-500 font-bold">Task List</p>
                 </div>
-               
                 <button onclick="openModal('new-task-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center flex-shrink-0 transition-all shadow-sm active:scale-95">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
-                    New Task
+                    New
                 </button>
             </div>
-            <div id="tasks-list" class="space-y-3">
+            <div id="tasks-list" class="space-y-3 pb-20">
                 <!-- Task items injected here -->
             </div>
             <div id="no-tasks-msg" class="hidden flex flex-col items-center justify-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
                 <p class="font-bold text-lg text-gray-700">No tasks created yet</p>
-                <p class="text-gray-500">Add a task to start snapping photos.</p>
             </div>
         </div>
 
         <!-- IMAGES VIEW -->
-        <div id="images-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto">
-            <div class="mb-6 pt-2">
+        <div id="images-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto flex flex-col justify-start">
+            <div class="mb-6">
                 <h1 id="current-task-title" class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1 leading-tight">Task Name</h1>
                 <p class="text-gray-500 font-bold">Photo Documentation</p>
             </div>
 
             <!-- Camera/Upload Button Area -->
-            <div class="mb-6 bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between">
+            <div class="mb-6 bg-white p-5 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between sticky top-2 z-10">
                  <div>
                     <h3 class="text-xl font-extrabold text-gray-900">Add Photo</h3>
-                    <p class="text-sm font-medium text-gray-500 mt-1">Auto-compressed & uploaded</p>
+                    <p class="text-sm font-medium text-gray-500 mt-1">Auto-compressed</p>
                  </div>
-                 <label for="camera-input" class="bg-blue-600 hover:bg-blue-700 text-white p-4 sm:p-5 rounded-2xl shadow-lg cursor-pointer active:scale-95 transition-all flex items-center justify-center">
+                 <label for="camera-input" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl shadow-lg cursor-pointer active:scale-95 transition-all flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -163,13 +155,10 @@
             </div>
 
             <!-- Images Grid -->
-            <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-20">
                 <!-- Image items injected here -->
             </div>
             <div id="no-images-msg" class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
                 <p class="font-bold text-xl text-gray-700">No photos yet</p>
                 <p class="text-gray-500 mt-2">Tap the camera icon to start.</p>
             </div>
@@ -183,7 +172,7 @@
             <h2 class="text-2xl font-extrabold mb-6 text-gray-900">New Build Folder</h2>
             <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">Folder Name</label>
-                <input type="text" id="new-build-name" placeholder="e.g., Project Alpha, 123 Main St" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg">
+                <input type="text" id="new-build-name" placeholder="e.g., Project Alpha" class="w-full border-2 border-gray-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg">
             </div>
             <div class="flex space-x-3">
                 <button onclick="closeModal('new-build-modal')" class="flex-1 py-4 text-gray-700 font-bold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
@@ -197,7 +186,7 @@
             <h2 class="text-2xl font-extrabold mb-6 text-gray-900">New Task</h2>
              <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">Task Name</label>
-                <input type="text" id="new-task-name" placeholder="e.g., Foundation Inspection" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg">
+                <input type="text" id="new-task-name" placeholder="e.g., Foundation Inspection" class="w-full border-2 border-gray-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg">
             </div>
             <div class="flex space-x-3">
                 <button onclick="closeModal('new-task-modal')" class="flex-1 py-4 text-gray-700 font-bold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
@@ -207,7 +196,7 @@
     </div>
 
     <div id="image-preview-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col transition-opacity" onclick="closeModal('image-preview-modal')">
-         <div class="flex justify-end p-6">
+         <div class="flex justify-end p-6 pt-12">
              <button class="text-white p-2 bg-gray-800 bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all backdrop-blur-md">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -217,7 +206,7 @@
          <div class="flex-1 flex items-center justify-center p-4 overflow-hidden">
              <img id="preview-image-el" src="" class="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview">
          </div>
-         <div class="p-6 text-white bg-gradient-to-t from-black/90 to-transparent">
+         <div class="p-6 pb-12 text-white bg-gradient-to-t from-black/90 to-transparent">
              <p id="preview-meta" class="font-medium opacity-90 text-center"></p>
          </div>
     </div>
@@ -228,7 +217,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your actual Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAcQbRXDz2lQDWtjXJDKxctYUeMwJVOB1s",
             authDomain: "site-snap-2a599.firebaseapp.com",
@@ -243,8 +231,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
         const APP_ID = "my-site-snap-production";
+        const BASE_PATH = `artifacts/${APP_ID}/public/data`;
 
         let state = {
             currentView: 'login',
@@ -257,15 +245,12 @@
             unsubImages: null
         };
 
-        const BASE_PATH = `artifacts/${APP_ID}/public/data`;
-
-        // Failsafe timeout for the loader
+        // Loader Failsafe
         const loaderTimeout = setTimeout(() => {
-            const loaderEl = document.getElementById('initial-loader');
-            if (!loaderEl.classList.contains('hidden')) {
-                showConnectionError("Connection timed out. Please check your internet.");
+            if (!document.getElementById('initial-loader').classList.contains('hidden')) {
+                showConnectionError("Connection timed out. Please check internet.");
             }
-        }, 15000); // 15 seconds
+        }, 15000);
 
         function showConnectionError(msg) {
              document.getElementById('loader-spinner').classList.add('hidden');
@@ -283,22 +268,15 @@
             } else {
                 signInAnonymously(auth).catch(e => {
                     clearTimeout(loaderTimeout);
-                    console.error("Auth failed:", e);
-                    let msg = "Connection failed. Check console for details.";
-                    if (e.code === 'auth/configuration-not-found') {
-                         msg = "Setup required: Enable 'Anonymous' sign-in in Firebase Console.";
-                    } else if (e.code === 'auth/network-request-failed') {
-                        msg = "Network error. Please check your internet connection.";
-                    }
+                    let msg = "Connection failed.";
+                    if (e.code === 'auth/configuration-not-found') msg = "Enable 'Anonymous' sign-in in Firebase Console.";
                     showConnectionError(msg);
                 });
             }
         });
 
-        // --- Workspace Login ---
         window.joinWorkspace = () => {
-            const wsInput = document.getElementById('workspace-id-input');
-            const wsId = wsInput.value.trim().toUpperCase();
+            const wsId = document.getElementById('workspace-id-input').value.trim().toUpperCase();
             if (!wsId) return;
             state.workspaceId = wsId;
             document.getElementById('workspace-badge').textContent = `WS: ${wsId}`;
@@ -307,14 +285,11 @@
             navigateTo('builds');
         }
 
-        // --- Navigation ---
         window.navigateTo = (view, data = null) => {
             if (state.currentView === 'tasks' && view !== 'tasks') { if (state.unsubTasks) state.unsubTasks(); state.unsubTasks = null; }
             if (state.currentView === 'images' && view !== 'images') { if (state.unsubImages) state.unsubImages(); state.unsubImages = null; }
-
             state.currentView = view;
-            // Force scroll to top on navigation
-            document.getElementById('main-content').scrollTop = 0;
+            document.getElementById('main-content').scrollTop = 0; // Force top scroll
 
             if (view === 'builds') {
                 state.currentBuild = null; state.currentTask = null;
@@ -332,39 +307,18 @@
         }
 
         function showView(viewId) {
-            ['login-view', 'builds-view', 'tasks-view', 'images-view'].forEach(id => {
-                document.getElementById(id).classList.replace('active-view', 'hidden-view');
-            });
+            ['login-view', 'builds-view', 'tasks-view', 'images-view'].forEach(id => document.getElementById(id).classList.replace('active-view', 'hidden-view'));
             document.getElementById(viewId).classList.replace('hidden-view', 'active-view');
         }
 
         function updateBreadcrumbs() {
             const container = document.getElementById('nav-breadcrumbs');
-            let html = `
-                <button onclick="navigateTo('builds')" class="text-blue-600 hover:bg-blue-50 p-2 -ml-2 rounded-xl transition-colors flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                    </svg>
-                </button>`;
-            
-            if (state.currentBuild) {
-                html += ` 
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-                <button onclick="navigateTo('tasks', state.currentBuild)" class="text-blue-600 hover:underline truncate font-semibold">${state.currentBuild.name}</button>`;
-            }
-            if (state.currentTask) {
-                html += `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-gray-800 truncate font-semibold">${state.currentTask.name}</span>`;
-            }
+            let html = `<button onclick="navigateTo('builds')" class="text-blue-600 hover:bg-blue-50 p-2 -ml-2 rounded-xl transition-colors flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg></button>`;
+            if (state.currentBuild) html += `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><button onclick="navigateTo('tasks', state.currentBuild)" class="text-blue-600 hover:underline truncate font-semibold">${state.currentBuild.name}</button>`;
+            if (state.currentTask) html += `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><span class="text-gray-800 truncate font-semibold">${state.currentTask.name}</span>`;
             container.innerHTML = html;
         }
 
-        // --- Firestore Functions (Simplified for brevity but functional) ---
         function loadBuilds() {
             if (!state.user || !state.workspaceId) return;
             if (state.unsubBuilds) state.unsubBuilds();
@@ -380,19 +334,7 @@
                         const date = build.createdAt ? new Date(build.createdAt.seconds * 1000).toLocaleDateString() : '';
                         const el = document.createElement('div');
                         el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 cursor-pointer transition-all active:scale-95 group';
-                        el.innerHTML = `
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center overflow-hidden mr-3">
-                                     <div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                                    </div>
-                                    <div class="truncate">
-                                        <h3 class="text-lg font-bold text-gray-900 truncate">${build.name}</h3>
-                                        <p class="text-sm text-gray-500 font-medium">${date}</p>
-                                    </div>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                            </div>`;
+                        el.innerHTML = `<div class="flex items-start justify-between"><div class="flex items-center overflow-hidden mr-3"><div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg></div><div class="truncate"><h3 class="text-lg font-bold text-gray-900 truncate">${build.name}</h3><p class="text-sm text-gray-500 font-medium">${date}</p></div></div><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg></div>`;
                         el.onclick = () => navigateTo('tasks', build); listEl.appendChild(el);
                     });
                 }
@@ -419,14 +361,7 @@
                          const date = task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : '';
                          const el = document.createElement('div');
                          el.className = 'bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 cursor-pointer flex items-center justify-between active:bg-blue-50 transition-all group';
-                         el.innerHTML = `
-                             <div class="flex items-center overflow-hidden">
-                                 <div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors">
-                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                 </div>
-                                 <div class="truncate"><h4 class="text-lg font-bold text-gray-900 truncate">${task.name}</h4><p class="text-sm font-medium text-gray-500">${date}</p></div>
-                             </div>
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 ml-2 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
+                         el.innerHTML = `<div class="flex items-center overflow-hidden"><div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div><div class="truncate"><h4 class="text-lg font-bold text-gray-900 truncate">${task.name}</h4><p class="text-sm font-medium text-gray-500">${date}</p></div></div><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 ml-2 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
                          el.onclick = () => navigateTo('images', task); listEl.appendChild(el);
                      });
                  }
@@ -463,15 +398,16 @@
             const file = event.target.files[0]; if (!file || !state.currentTask) return;
             document.getElementById('upload-progress').classList.remove('hidden');
             try {
-                const compressedBase64 = await compressImage(file);
+                // Increased compression for speed
+                const compressedBase64 = await compressImage(file, 800, 0.5);
                 await addDoc(collection(db, `${BASE_PATH}/images`), { workspaceId: state.workspaceId, taskId: state.currentTask.id, base64: compressedBase64, createdAt: serverTimestamp(), createdBy: state.user.uid });
             } catch (error) { console.error(error); alert("Upload failed."); } 
             finally { document.getElementById('upload-progress').classList.add('hidden'); event.target.value = ''; }
         };
 
-        function compressImage(file) {
+        function compressImage(file, maxWidth, quality) {
             return new Promise((resolve, reject) => {
-                const maxWidth = 1024; const quality = 0.6; const reader = new FileReader(); reader.readAsDataURL(file);
+                const reader = new FileReader(); reader.readAsDataURL(file);
                 reader.onload = (ev) => { const img = new Image(); img.src = ev.target.result;
                     img.onload = () => {
                         let w = img.width, h = img.height; if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
@@ -489,7 +425,6 @@
             document.getElementById('preview-meta').textContent = `Captured: ${imgData.createdAt ? new Date(imgData.createdAt.seconds * 1000).toLocaleString() : 'Just now'}`;
             document.getElementById('image-preview-modal').classList.remove('hidden');
         }
-        window.state = state; 
     </script>
 </body>
 </html>
