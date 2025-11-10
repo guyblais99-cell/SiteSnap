@@ -14,8 +14,10 @@
         body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
         html, body { overscroll-behavior-y: contain; }
         .view-container { transition: opacity 0.2s ease-in-out; width: 100%; }
-        .hidden-view { display: none; opacity: 0; }
-        .active-view { display: block; opacity: 1; }
+        .hidden-view { display: none !important; opacity: 0; }
+        .active-view { display: block !important; opacity: 1; }
+        /* Ensure login view is flex for centering, others are block for top alignment */
+        #login-view.active-view { display: flex !important; }
         .loader {
             border-top-color: #3B82F6;
             -webkit-animation: spinner 1.5s linear infinite;
@@ -29,20 +31,27 @@
 
     <!-- Navigation Bar -->
     <nav id="main-nav" class="bg-white border-b border-gray-200 px-4 py-3 flex items-center sticky top-0 z-40 shadow-sm flex-shrink-0 hidden">
-        <div class="w-full max-w-5xl mx-auto flex items-center">
-            <div id="nav-breadcrumbs" class="flex items-center text-lg font-bold truncate flex-1">
-                 <!-- Breadcrumbs injected here -->
+        <div class="w-full max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center flex-1 overflow-hidden mr-2">
+                 <div id="nav-breadcrumbs" class="flex items-center text-lg font-bold truncate">
+                     <!-- Breadcrumbs injected here -->
+                </div>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center flex-shrink-0">
                 <span id="workspace-badge" class="hidden md:inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded"></span>
+                <button onclick="signOutWorkspace()" class="text-gray-500 hover:text-red-600 p-2 mr-2 transition-colors" title="Sign Out">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
                 <div id="connection-status" class="w-3 h-3 rounded-full bg-red-500"></div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content Area -->
-    <!-- Removed 'relative' and ensured justified-start for mobile layout fix -->
-    <main class="flex-1 overflow-y-auto w-full flex flex-col justify-start" id="main-content">
+    <!-- Changed to block display to force natural top alignment flow for standard views -->
+    <main class="flex-1 overflow-y-auto w-full" id="main-content">
         
         <!-- Initial Loading State -->
         <div id="initial-loader" class="fixed inset-0 flex items-center justify-center bg-gray-100 z-50 px-8 text-center">
@@ -62,8 +71,8 @@
              <p id="global-busy-msg" class="font-bold text-lg">Processing...</p>
         </div>
 
-        <!-- LOGIN VIEW -->
-        <div id="login-view" class="view-container active-view flex-1 flex items-center justify-center p-6">
+        <!-- LOGIN VIEW (Centered via CSS class #login-view.active-view) -->
+        <div id="login-view" class="view-container active-view h-full items-center justify-center p-6">
             <div class="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full mx-auto border border-gray-100 -mt-20">
                 <div class="text-center mb-8">
                     <div class="bg-blue-600 text-white p-4 rounded-2xl inline-flex mb-4 shadow-md">
@@ -294,10 +303,31 @@
             const wsId = document.getElementById('workspace-id-input').value.trim().toUpperCase();
             if (!wsId) return;
             state.workspaceId = wsId;
+            localStorage.setItem('lastWorkspaceId', wsId); // Simple convenience
             document.getElementById('workspace-badge').textContent = `WS: ${wsId}`;
-            document.getElementById('login-view').classList.replace('active-view', 'hidden-view');
+            document.getElementById('login-view').classList.remove('active-view');
+            document.getElementById('login-view').classList.add('hidden-view');
             document.getElementById('main-nav').classList.remove('hidden');
             navigateTo('builds');
+        }
+
+        // New sign out function
+        window.signOutWorkspace = () => {
+            if (confirm("Sign out of current workspace?")) {
+                state.workspaceId = null;
+                if (state.unsubBuilds) state.unsubBuilds();
+                if (state.unsubTasks) state.unsubTasks();
+                if (state.unsubImages) state.unsubImages();
+                
+                document.getElementById('main-nav').classList.add('hidden');
+                ['builds-view', 'tasks-view', 'images-view'].forEach(id => {
+                     document.getElementById(id).classList.remove('active-view');
+                     document.getElementById(id).classList.add('hidden-view');
+                });
+                document.getElementById('login-view').classList.remove('hidden-view');
+                document.getElementById('login-view').classList.add('active-view');
+                document.getElementById('workspace-id-input').value = '';
+            }
         }
 
         window.navigateTo = (view, data = null) => {
@@ -307,7 +337,6 @@
             document.getElementById('main-content').scrollTop = 0; 
 
             if (view === 'builds') {
-                // Keep currentBuild mostly null, but don't wipe it instantly if we need it for breadcrumb transitions
                 state.currentTask = null;
                 showView('builds-view'); loadBuilds();
             } else if (view === 'tasks') {
@@ -324,14 +353,17 @@
         }
 
         function showView(viewId) {
-            ['login-view', 'builds-view', 'tasks-view', 'images-view'].forEach(id => document.getElementById(id).classList.replace('active-view', 'hidden-view'));
-            document.getElementById(viewId).classList.replace('hidden-view', 'active-view');
+            ['login-view', 'builds-view', 'tasks-view', 'images-view'].forEach(id => {
+                document.getElementById(id).classList.remove('active-view');
+                document.getElementById(id).classList.add('hidden-view');
+            });
+            document.getElementById(viewId).classList.remove('hidden-view');
+            document.getElementById(viewId).classList.add('active-view');
         }
 
         function updateBreadcrumbs() {
             const container = document.getElementById('nav-breadcrumbs');
             let html = `<button onclick="navigateTo('builds')" class="text-blue-600 hover:bg-blue-50 p-2 -ml-2 rounded-xl transition-colors flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg></button>`;
-            // Fixed breadcrumb click by using a global function instead of passing object
             if (state.currentBuild && (state.currentView === 'tasks' || state.currentView === 'images')) {
                 html += `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300 mx-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><button onclick="window.navToCurrentBuild()" class="text-blue-600 hover:underline truncate font-semibold">${state.currentBuild.name}</button>`;
             }
@@ -371,12 +403,12 @@
                                 </div>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
                             </div>
-                            <button onclick="event.stopPropagation(); window.exportBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute bottom-5 right-5 text-gray-400 hover:text-blue-600 p-2 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors" title="Export Project">
+                            <!-- MOVED EXPORT BUTTON TO BOTTOM LEFT -->
+                            <button onclick="event.stopPropagation(); window.exportBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute bottom-5 left-5 text-gray-400 hover:text-blue-600 p-2 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors z-10" title="Export Project">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
                             </button>`;
-                        // Temporary storage for click handler to avoid passing objects
                         state.tempBuilds = state.tempBuilds || {};
                         state.tempBuilds[build.id] = build;
                         listEl.appendChild(el);
@@ -407,7 +439,6 @@
                          const el = document.createElement('div');
                          el.className = 'bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 cursor-pointer flex items-center justify-between active:bg-blue-50 transition-all group';
                          el.innerHTML = `<div class="flex items-center overflow-hidden"><div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div><div class="truncate"><h4 class="text-lg font-bold text-gray-900 truncate">${task.name}</h4><p class="text-sm font-medium text-gray-500">${date}</p></div></div><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 ml-2 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
-                         // Store temp task for safer clicking
                          state.tempTasks = state.tempTasks || {};
                          state.tempTasks[task.id] = task;
                          el.onclick = () => navigateTo('images', state.tempTasks[task.id]); 
@@ -428,7 +459,7 @@
             const q = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskId), where('workspaceId', '==', state.workspaceId));
             state.unsubImages = onSnapshot(q, (snapshot) => {
                 const gridEl = document.getElementById('images-grid'); gridEl.innerHTML = '';
-                state.imageCountInTask = snapshot.size; // Track count for naming
+                state.imageCountInTask = snapshot.size;
                 if (snapshot.empty) { document.getElementById('no-images-msg').classList.remove('hidden'); } 
                 else {
                     document.getElementById('no-images-msg').classList.add('hidden');
@@ -437,7 +468,6 @@
                     images.forEach(imgData => {
                          const el = document.createElement('div');
                          el.className = 'relative aspect-square bg-gray-200 rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all active:scale-95';
-                         // Show displayName if available
                          el.innerHTML = `
                             <img src="${imgData.base64}" class="w-full h-full object-cover" loading="lazy" alt="${imgData.displayName || 'Site photo'}">
                             ${imgData.displayName ? `<div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">${imgData.displayName}</div>` : ''}
@@ -453,9 +483,7 @@
             document.getElementById('upload-progress').classList.remove('hidden');
             try {
                 const compressedBase64 = await compressImage(file, 800, 0.5);
-                // Generate sequential name based on local count + 1
                 const nextNum = state.imageCountInTask + 1;
-                // Sanitize task name for filename friendliness
                 const safeTaskName = state.currentTask.name.replace(/[^a-z0-9]/gi, '-');
                 const displayName = `${safeTaskName}_${nextNum}.jpg`;
 
@@ -493,14 +521,12 @@
                 const zip = new JSZip();
                 const buildFolder = zip.folder(buildName.replace(/[^a-z0-9\s-]/gi, ''));
 
-                // 1. Fetch all tasks for this build
                 msgEl.textContent = "Fetching tasks...";
                 const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId), where('workspaceId', '==', state.workspaceId));
                 const tasksSnap = await getDocs(tasksQ);
                 const tasks = [];
                 tasksSnap.forEach(doc => tasks.push({id: doc.id, name: doc.data().name}));
 
-                // 2. For each task, fetch images
                 let totalImages = 0;
                 for (let i = 0; i < tasks.length; i++) {
                     const task = tasks[i];
@@ -512,12 +538,10 @@
                     
                     imgsSnap.forEach((doc, index) => {
                         const data = doc.data();
-                        // Use displayName if it exists, otherwise generate one
                         let filename = data.displayName || `image_${index + 1}.jpg`;
                         if (!filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.jpeg') && !filename.toLowerCase().endsWith('.png')) {
                              filename += '.jpg';
                         }
-                        // Remove data URL prefix to get raw base64
                         const base64Data = data.base64.split(',')[1];
                         taskFolder.file(filename, base64Data, {base64: true});
                         totalImages++;
@@ -529,7 +553,6 @@
                     return;
                 }
 
-                // 3. Generate Zip
                 msgEl.textContent = "Zipping files...";
                 const content = await zip.generateAsync({type:"blob"});
                 saveAs(content, `${buildName}_export.zip`);
