@@ -16,7 +16,6 @@
         .view-container { transition: opacity 0.2s ease-in-out; width: 100%; }
         .hidden-view { display: none !important; opacity: 0; }
         .active-view { display: block !important; opacity: 1; }
-        /* Ensure login view is flex for centering, others are block for top alignment */
         #login-view.active-view { display: flex !important; }
         .loader {
             border-top-color: #3B82F6;
@@ -50,7 +49,6 @@
     </nav>
 
     <!-- Main Content Area -->
-    <!-- Changed to block display to force natural top alignment flow for standard views -->
     <main class="flex-1 overflow-y-auto w-full" id="main-content">
         
         <!-- Initial Loading State -->
@@ -65,13 +63,13 @@
             </div>
         </div>
 
-        <!-- Global Busy Loader (for exports) -->
+        <!-- Global Busy Loader -->
         <div id="global-busy" class="fixed inset-0 z-[60] bg-black bg-opacity-70 hidden flex flex-col items-center justify-center text-white">
              <div class="loader ease-linear rounded-full border-4 border-t-4 border-blue-500 h-12 w-12 mb-4"></div>
              <p id="global-busy-msg" class="font-bold text-lg">Processing...</p>
         </div>
 
-        <!-- LOGIN VIEW (Centered via CSS class #login-view.active-view) -->
+        <!-- LOGIN VIEW -->
         <div id="login-view" class="view-container active-view h-full items-center justify-center p-6">
             <div class="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full mx-auto border border-gray-100 -mt-20">
                 <div class="text-center mb-8">
@@ -213,22 +211,29 @@
     </div>
 
     <div id="image-preview-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col transition-opacity">
-         <div class="flex justify-between p-6 pt-12">
-              <button onclick="deleteCurrentImage()" class="text-white p-2 bg-red-600 bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all backdrop-blur-md flex items-center justify-center">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-             </button>
+         <div class="flex justify-between p-6 pt-12 z-50 relative">
+             <div class="flex items-center space-x-4">
+                  <button onclick="deleteCurrentImage()" class="text-white p-2 bg-red-600 bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all backdrop-blur-md flex items-center justify-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                 </button>
+                  <button onclick="downloadCurrentImage()" class="text-white p-2 bg-blue-600 bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all backdrop-blur-md flex items-center justify-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                 </button>
+             </div>
              <button onclick="closeModal('image-preview-modal')" class="text-white p-2 bg-gray-800 bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all backdrop-blur-md">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
              </button>
          </div>
-         <div class="flex-1 flex items-center justify-center p-4 overflow-hidden" onclick="closeModal('image-preview-modal')">
+         <div class="flex-1 flex items-center justify-center p-4 overflow-hidden absolute inset-0" onclick="closeModal('image-preview-modal')">
              <img id="preview-image-el" src="" class="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview">
          </div>
-         <div class="p-6 pb-12 text-white bg-gradient-to-t from-black/90 to-transparent">
+         <div class="p-6 pb-12 text-white bg-gradient-to-t from-black/90 to-transparent relative z-40 pointer-events-none">
              <p id="preview-name" class="text-xl font-bold text-center mb-1"></p>
              <p id="preview-meta" class="font-medium opacity-75 text-sm text-center"></p>
          </div>
@@ -238,7 +243,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, deleteDoc, doc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAcQbRXDz2lQDWtjXJDKxctYUeMwJVOB1s",
@@ -264,6 +269,7 @@
             currentTask: null,
             user: null,
             currentImageId: null,
+            currentImageData: null, // Store full data for download
             imageCountInTask: 0,
             unsubBuilds: null,
             unsubTasks: null,
@@ -289,6 +295,12 @@
                 document.getElementById('connection-status').classList.replace('bg-red-500', 'bg-green-500');
                 document.getElementById('initial-loader').classList.add('hidden');
                 document.getElementById('join-btn').disabled = false;
+                // Auto-login check
+                const savedWs = localStorage.getItem('lastWorkspaceId');
+                if (savedWs) {
+                    document.getElementById('workspace-id-input').value = savedWs;
+                    joinWorkspace();
+                }
             } else {
                 signInAnonymously(auth).catch(e => {
                     clearTimeout(loaderTimeout);
@@ -303,7 +315,7 @@
             const wsId = document.getElementById('workspace-id-input').value.trim().toUpperCase();
             if (!wsId) return;
             state.workspaceId = wsId;
-            localStorage.setItem('lastWorkspaceId', wsId); // Simple convenience
+            localStorage.setItem('lastWorkspaceId', wsId);
             document.getElementById('workspace-badge').textContent = `WS: ${wsId}`;
             document.getElementById('login-view').classList.remove('active-view');
             document.getElementById('login-view').classList.add('hidden-view');
@@ -311,10 +323,10 @@
             navigateTo('builds');
         }
 
-        // New sign out function
         window.signOutWorkspace = () => {
             if (confirm("Sign out of current workspace?")) {
                 state.workspaceId = null;
+                localStorage.removeItem('lastWorkspaceId');
                 if (state.unsubBuilds) state.unsubBuilds();
                 if (state.unsubTasks) state.unsubTasks();
                 if (state.unsubImages) state.unsubImages();
@@ -403,7 +415,13 @@
                                 </div>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
                             </div>
-                            <!-- MOVED EXPORT BUTTON TO BOTTOM LEFT -->
+                             <!-- DELETE BUTTON (Top Right) -->
+                            <button onclick="event.stopPropagation(); window.deleteBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 p-2 rounded-full transition-colors z-10" title="Delete Build">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                            <!-- EXPORT BUTTON (Bottom Left) -->
                             <button onclick="event.stopPropagation(); window.exportBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute bottom-5 left-5 text-gray-400 hover:text-blue-600 p-2 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors z-10" title="Export Project">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -417,6 +435,31 @@
             });
         }
         window.selectBuild = (id) => navigateTo('tasks', state.tempBuilds[id]);
+
+        window.deleteBuild = async (buildId, buildName) => {
+             if (!confirm(`Are you sure you want to delete "${buildName}"?\n\nTHIS WILL DELETE ALL TASKS AND PHOTOS INSIDE IT.`)) return;
+             const busyEl = document.getElementById('global-busy');
+             document.getElementById('global-busy-msg').textContent = "Deleting...";
+             busyEl.classList.remove('hidden');
+             try {
+                 // Cascading delete: Find all tasks, then all images, and delete them in batches
+                 const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId));
+                 const tasksSnap = await getDocs(tasksQ);
+                 const batch = writeBatch(db);
+                 batch.delete(doc(db, `${BASE_PATH}/builds`, buildId)); // Delete build itself
+                 for (const taskDoc of tasksSnap.docs) {
+                     batch.delete(taskDoc.ref); // Delete task
+                     const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
+                     const imgsSnap = await getDocs(imgsQ);
+                     imgsSnap.forEach(imgDoc => batch.delete(imgDoc.ref)); // Delete images
+                 }
+                 await batch.commit();
+             } catch (e) {
+                 console.error(e); alert("Delete failed. See console.");
+             } finally {
+                 busyEl.classList.add('hidden');
+             }
+        }
 
         window.confirmCreateBuild = async () => {
             const input = document.getElementById('new-build-name'); const name = input.value.trim(); if (!name) return;
@@ -438,14 +481,47 @@
                          const date = task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : '';
                          const el = document.createElement('div');
                          el.className = 'bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 cursor-pointer flex items-center justify-between active:bg-blue-50 transition-all group';
-                         el.innerHTML = `<div class="flex items-center overflow-hidden"><div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div><div class="truncate"><h4 class="text-lg font-bold text-gray-900 truncate">${task.name}</h4><p class="text-sm font-medium text-gray-500">${date}</p></div></div><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 ml-2 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
+                         el.innerHTML = `
+                            <div class="flex items-center overflow-hidden flex-1 mr-4" onclick="window.selectTask('${task.id}')">
+                                <div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                </div>
+                                <div class="truncate">
+                                    <h4 class="text-lg font-bold text-gray-900 truncate">${task.name}</h4>
+                                    <p class="text-sm font-medium text-gray-500">${date}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <button onclick="event.stopPropagation(); window.deleteTask('${task.id}', '${task.name.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 p-2 mr-1 rounded-full transition-colors" title="Delete Task">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                            </div>`;
                          state.tempTasks = state.tempTasks || {};
                          state.tempTasks[task.id] = task;
-                         el.onclick = () => navigateTo('images', state.tempTasks[task.id]); 
                          listEl.appendChild(el);
                      });
                  }
              });
+        }
+        window.selectTask = (id) => navigateTo('images', state.tempTasks[id]);
+
+        window.deleteTask = async (taskId, taskName) => {
+             if (!confirm(`Delete task "${taskName}" and all its photos?`)) return;
+             const busyEl = document.getElementById('global-busy');
+             document.getElementById('global-busy-msg').textContent = "Deleting...";
+             busyEl.classList.remove('hidden');
+             try {
+                 const batch = writeBatch(db);
+                 batch.delete(doc(db, `${BASE_PATH}/tasks`, taskId));
+                 const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskId));
+                 const imgsSnap = await getDocs(imgsQ);
+                 imgsSnap.forEach(imgDoc => batch.delete(imgDoc.ref));
+                 await batch.commit();
+             } catch(e) { console.error(e); alert("Delete failed."); }
+             finally { busyEl.classList.add('hidden'); }
         }
 
         window.confirmCreateTask = async () => {
@@ -508,6 +584,11 @@
                 console.error("Delete failed", e);
                 alert("Failed to delete image.");
             }
+        }
+        
+        window.downloadCurrentImage = () => {
+            if (!state.currentImageData) return;
+            saveAs(state.currentImageData.base64, state.currentImageData.displayName || 'site_photo.jpg');
         }
 
         // --- EXPORT FUNCTIONALITY ---
@@ -582,6 +663,7 @@
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
         window.openImagePreview = (imgData) => {
             state.currentImageId = imgData.id;
+            state.currentImageData = imgData; // save for download
             document.getElementById('preview-image-el').src = imgData.base64;
             document.getElementById('preview-name').textContent = imgData.displayName || '';
             document.getElementById('preview-meta').textContent = `Captured: ${imgData.createdAt ? new Date(imgData.createdAt.seconds * 1000).toLocaleString() : 'Just now'}`;
