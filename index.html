@@ -403,28 +403,23 @@
                         const el = document.createElement('div');
                         el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 cursor-pointer transition-all active:scale-95 group relative';
                         el.innerHTML = `
-                            <div class="flex items-start justify-between" onclick="window.selectBuild('${build.id}')">
-                                <div class="flex items-center overflow-hidden mr-3">
-                                     <div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                                    </div>
-                                    <div class="truncate">
-                                        <h3 class="text-lg font-bold text-gray-900 truncate">${build.name}</h3>
-                                        <p class="text-sm text-gray-500 font-medium">${date}</p>
-                                    </div>
+                            <div class="flex items-center" onclick="window.selectBuild('${build.id}')">
+                                <div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                                 </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                                <div class="truncate flex-1 mr-2">
+                                    <h3 class="text-lg font-bold text-gray-900 truncate">${build.name}</h3>
+                                    <p class="text-sm text-gray-500 font-medium">${date}</p>
+                                </div>
+                                <button onclick="event.stopPropagation(); window.exportBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="text-gray-400 hover:text-blue-600 p-2 hover:bg-blue-100 rounded-full transition-colors mr-8 flex-shrink-0" title="Export Project ZIP">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </button>
                             </div>
-                             <!-- DELETE BUTTON (Top Right) -->
                             <button onclick="event.stopPropagation(); window.deleteBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 p-2 rounded-full transition-colors z-10" title="Delete Build">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                            <!-- EXPORT BUTTON (Bottom Left) -->
-                            <button onclick="event.stopPropagation(); window.exportBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute bottom-5 left-5 text-gray-400 hover:text-blue-600 p-2 bg-gray-50 hover:bg-blue-50 rounded-full transition-colors z-10" title="Export Project">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
                             </button>`;
                         state.tempBuilds = state.tempBuilds || {};
