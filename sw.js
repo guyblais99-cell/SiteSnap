@@ -11,6 +11,7 @@ const URLS_TO_CACHE = [
   'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js',
   'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js',
-  // Your app icon
+  // Your app icons
+  'icon-192x192.png',
   'icon-512x512.png'
 ];
