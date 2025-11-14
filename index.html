@@ -313,13 +313,47 @@
             document.getElementById('login-view').classList.remove('active-view');
             document.getElementById('login-view').classList.add('hidden-view');
             document.getElementById('main-nav').classList.remove('hidden');
-            navigateTo('builds');
+            
+            // --- MODIFICATION: Restore last session view ---
+            const lastView = localStorage.getItem('lastView');
+            const lastBuild = localStorage.getItem('lastBuild');
+            const lastTask = localStorage.getItem('lastTask');
+
+            if (lastView === 'images' && lastBuild && lastTask) {
+                try {
+                    const build = JSON.parse(lastBuild);
+                    const task = JSON.parse(lastTask);
+                    state.currentBuild = build; // Set build context first
+                    navigateTo('images', task); // Then navigate to images
+                } catch (e) {
+                    console.error("Failed to restore session", e);
+                    navigateTo('builds'); // Fallback
+                }
+            } else if (lastView === 'tasks' && lastBuild) {
+                try {
+                    const build = JSON.parse(lastBuild);
+                    navigateTo('tasks', build);
+                } catch (e) {
+                    console.error("Failed to restore session", e);
+                    navigateTo('builds'); // Fallback
+                }
+            } else {
+                // Default to builds view
+                navigateTo('builds');
+            }
+            // --- END MODIFICATION ---
         }
 
         window.signOutWorkspace = () => {
             if (confirm("Sign out of current workspace?")) {
                 state.workspaceId = null;
                 localStorage.removeItem('lastWorkspaceId');
+                // --- MODIFICATION: Clear session state on sign out ---
+                localStorage.removeItem('lastView');
+                localStorage.removeItem('lastBuild');
+                localStorage.removeItem('lastTask');
+                // --- END MODIFICATION ---
+
                 if (state.unsubBuilds) state.unsubBuilds();
                 if (state.unsubTasks) state.unsubTasks();
                 if (state.unsubImages) state.unsubImages();
@@ -342,6 +376,7 @@
             document.getElementById('main-content').scrollTop = 0; 
 
             if (view === 'builds') {
+                state.currentBuild = null;
                 state.currentTask = null;
                 showView('builds-view'); loadBuilds();
             } else if (view === 'tasks') {
@@ -355,6 +390,22 @@
                 showView('images-view'); loadImages(data.id);
             }
             updateBreadcrumbs();
+
+            // --- MODIFICATION: Save current view to localStorage ---
+            if (view === 'builds') {
+                localStorage.setItem('lastView', 'builds');
+                localStorage.removeItem('lastBuild');
+                localStorage.removeItem('lastTask');
+            } else if (view === 'tasks') {
+                localStorage.setItem('lastView', 'tasks');
+                localStorage.setItem('lastBuild', JSON.stringify(state.currentBuild));
+                localStorage.removeItem('lastTask');
+            } else if (view === 'images') {
+                localStorage.setItem('lastView', 'images');
+                localStorage.setItem('lastBuild', JSON.stringify(state.currentBuild));
+                localStorage.setItem('lastTask', JSON.stringify(state.currentTask));
+            }
+            // --- END MODIFICATION ---
         }
 
         function showView(viewId) {
@@ -546,7 +597,10 @@
             const file = event.target.files[0]; if (!file || !state.currentTask) return;
             document.getElementById('upload-progress').classList.remove('hidden');
             try {
-                const compressedBase64 = await compressImage(file, 800, 0.5);
+                // --- MODIFICATION: Changed from 800, 0.5 to 1024, 0.7 ---
+                const compressedBase64 = await compressImage(file, 1024, 0.7);
+                // --- END MODIFICATION ---
+
                 const nextNum = state.imageCountInTask + 1;
                 const safeTaskName = state.currentTask.name.replace(/[^a-z0-9]/gi, '-');
                 const displayName = `${safeTaskName}_${nextNum}.jpg`;
