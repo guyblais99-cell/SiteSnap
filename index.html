@@ -34,6 +34,56 @@
         }
         @-webkit-keyframes spinner { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- MODIFIED DRAG/GHOST STYLES --- */
+        
+        /* 1. This hides the ORIGINAL element being dragged */
+        .sortable-drag {
+            opacity: 0 !important;
+        }
+
+        /* 2. This styles the CLONE that follows your finger */
+        .sortable-fallback-styling {
+            opacity: 1 !important;
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border: 2px dashed #3B82F6 !important;
+            border-radius: 1rem !important; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 1000 !important;
+            display: block !important; 
+            visibility: visible !important;
+        }
+        
+        /* 3. This is the new PLACEHOLDER for the Build Folders */
+        .build-ghost {
+            background: #DBEAFE !important; /* blue-100 */
+            border: 2px dashed #3B82F6 !important; /* blue-500 */
+            border-radius: 1rem !important; /* 16px */
+            color: transparent !important; /* Hide text */
+            opacity: 1 !important;
+        }
+        /* This hides the content *inside* the item being replaced */
+        .build-ghost > * {
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        /* 4. This is the new PLACEHOLDER for the Task List */
+        .task-ghost {
+            background: #DBEAFE !important; 
+            border: 2px dashed #3B82F6 !important; 
+            border-radius: 1.125rem !important; /* 18px */
+            color: transparent !important;
+            opacity: 1 !important;
+        }
+        /* This hides the content *inside* the item being replaced */
+        .task-ghost > * {
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        /* --- END MODIFICATION --- */
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 h-[100dvh] flex flex-col">
@@ -476,19 +526,15 @@
         function loadBuilds() {
             if (!state.user || !state.workspaceId) return;
             if (state.unsubBuilds) state.unsubBuilds();
-            // This line is for view navigation, it's fine.
             if (state.sortableBuilds) state.sortableBuilds.destroy(); 
 
             const q = query(collection(db, `${BASE_PATH}/builds`), where('workspaceId', '==', state.workspaceId));
             state.unsubBuilds = onSnapshot(q, (snapshot) => {
                 
-                // --- THIS IS THE FIX ---
-                // Destroy the *previous* Sortable instance before rebuilding the list
                 if (state.sortableBuilds) {
                     state.sortableBuilds.destroy();
                     state.sortableBuilds = null; 
                 }
-                // --- END FIX ---
 
                 const listEl = document.getElementById('builds-list'); listEl.innerHTML = '';
                 if (snapshot.empty) { document.getElementById('no-builds-msg').classList.remove('hidden'); } 
@@ -533,11 +579,13 @@
 
                     state.sortableBuilds = new Sortable(listEl, {
                         animation: 150,
-                        ghostClass: 'bg-blue-50', 
+                        // --- MODIFIED ghostClass ---
+                        ghostClass: 'build-ghost', 
                         handle: '.drag-handle',    
                         forceFallback: true, 
                         delay: 100,          
                         touchStartThreshold: 5, 
+                        fallbackClass: 'sortable-fallback-styling',
                         onEnd: (evt) => {
                             updateBuildsOrder(); 
                         }
@@ -586,19 +634,15 @@
 
         function loadTasks(buildId) {
              if (!state.user) return;
-             // This line is for view navigation, it's fine.
              if (state.sortableTasks) state.sortableTasks.destroy();
 
              const q = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId), where('workspaceId', '==', state.workspaceId));
              state.unsubTasks = onSnapshot(q, (snapshot) => {
 
-                // --- THIS IS THE FIX ---
-                // Destroy the *previous* Sortable instance before rebuilding the list
                 if (state.sortableTasks) {
                     state.sortableTasks.destroy();
                     state.sortableTasks = null;
                 }
-                // --- END FIX ---
 
                  const listEl = document.getElementById('tasks-list'); listEl.innerHTML = '';
                  if (snapshot.empty) { document.getElementById('no-tasks-msg').classList.remove('hidden'); } 
@@ -641,11 +685,13 @@
 
                      state.sortableTasks = new Sortable(listEl, {
                         animation: 150,
-                        ghostClass: 'bg-blue-50',
+                        // --- MODIFIED ghostClass ---
+                        ghostClass: 'task-ghost',
                         handle: '.drag-handle',
                         forceFallback: true, 
                         delay: 100,          
-                        touchStartThreshold: 5, 
+                        touchStartThreshold: 5,
+                        fallbackClass: 'sortable-fallback-styling',
                         onEnd: (evt) => {
                             updateTasksOrder();
                         }
