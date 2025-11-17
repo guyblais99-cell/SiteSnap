@@ -532,6 +532,13 @@
                         animation: 150,
                         ghostClass: 'bg-blue-50', // Tailwind class for ghost item
                         handle: '.drag-handle',    // Specify the drag handle
+                        
+                        // --- ADDED FOR MOBILE FIX ---
+                        forceFallback: true, // Ensures a "ghost" element is created
+                        delay: 100,          // Prevents accidental drag on scroll
+                        touchStartThreshold: 5, // Pixels to move before drag starts
+                        // --- END ADDITION ---
+
                         onEnd: (evt) => {
                             updateBuildsOrder(); // Call our update function
                         }
@@ -636,6 +643,13 @@
                         animation: 150,
                         ghostClass: 'bg-blue-50',
                         handle: '.drag-handle',
+
+                        // --- ADDED FOR MOBILE FIX ---
+                        forceFallback: true, // Ensures a "ghost" element is created
+                        delay: 100,          // Prevents accidental drag on scroll
+                        touchStartThreshold: 5, // Pixels to move before drag starts
+                        // --- END ADDITION ---
+
                         onEnd: (evt) => {
                             updateTasksOrder();
                         }
