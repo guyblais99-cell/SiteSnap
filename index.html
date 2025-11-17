@@ -476,28 +476,33 @@
         function loadBuilds() {
             if (!state.user || !state.workspaceId) return;
             if (state.unsubBuilds) state.unsubBuilds();
-            // ADDED: Destroy old instance
-            if (state.sortableBuilds) state.sortableBuilds.destroy();
+            // This line is for view navigation, it's fine.
+            if (state.sortableBuilds) state.sortableBuilds.destroy(); 
 
             const q = query(collection(db, `${BASE_PATH}/builds`), where('workspaceId', '==', state.workspaceId));
             state.unsubBuilds = onSnapshot(q, (snapshot) => {
+                
+                // --- THIS IS THE FIX ---
+                // Destroy the *previous* Sortable instance before rebuilding the list
+                if (state.sortableBuilds) {
+                    state.sortableBuilds.destroy();
+                    state.sortableBuilds = null; 
+                }
+                // --- END FIX ---
+
                 const listEl = document.getElementById('builds-list'); listEl.innerHTML = '';
                 if (snapshot.empty) { document.getElementById('no-builds-msg').classList.remove('hidden'); } 
                 else {
                     document.getElementById('no-builds-msg').classList.add('hidden');
                     let builds = []; snapshot.forEach(doc => builds.push({id: doc.id, ...doc.data()}));
                     
-                    // MODIFIED: Sort by 'order' then 'createdAt'
                     builds.sort((a,b) => (a.order ?? (a.createdAt?.seconds || 0)) - (b.order ?? (b.createdAt?.seconds || 0)));
                     
                     builds.forEach(build => {
                         const date = build.createdAt ? new Date(build.createdAt.seconds * 1000).toLocaleDateString() : '';
                         const el = document.createElement('div');
                         el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 transition-all group relative';
-                        // ADDED data-id
                         el.setAttribute('data-id', build.id);
-
-                        // MODIFIED innerHTML to add handle and move onclick
                         el.innerHTML = `
                             <div class="flex items-center">
                                 <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none mr-2">
@@ -521,29 +526,22 @@
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>`;
-                        // END HTML MODIFICATION
                         state.tempBuilds = state.tempBuilds || {};
                         state.tempBuilds[build.id] = build;
                         listEl.appendChild(el);
                     });
 
-                    // ADDED: Initialize SortableJS
                     state.sortableBuilds = new Sortable(listEl, {
                         animation: 150,
-                        ghostClass: 'bg-blue-50', // Tailwind class for ghost item
-                        handle: '.drag-handle',    // Specify the drag handle
-                        
-                        // --- ADDED FOR MOBILE FIX ---
-                        forceFallback: true, // Ensures a "ghost" element is created
-                        delay: 100,          // Prevents accidental drag on scroll
-                        touchStartThreshold: 5, // Pixels to move before drag starts
-                        // --- END ADDITION ---
-
+                        ghostClass: 'bg-blue-50', 
+                        handle: '.drag-handle',    
+                        forceFallback: true, 
+                        delay: 100,          
+                        touchStartThreshold: 5, 
                         onEnd: (evt) => {
-                            updateBuildsOrder(); // Call our update function
+                            updateBuildsOrder(); 
                         }
                     });
-                    // END ADDITION
                 }
             });
         }
@@ -577,40 +575,44 @@
         window.confirmCreateBuild = async () => {
             const input = document.getElementById('new-build-name'); const name = input.value.trim(); if (!name) return;
             closeModal('new-build-modal'); input.value = '';
-            // MODIFIED: Added 'order' field
             await addDoc(collection(db, `${BASE_PATH}/builds`), { 
                 workspaceId: state.workspaceId, 
                 name, 
                 createdAt: serverTimestamp(), 
-                order: serverTimestamp(), // Use timestamp for new items
+                order: serverTimestamp(), 
                 createdBy: state.user.uid 
             });
         }
 
         function loadTasks(buildId) {
              if (!state.user) return;
-             // ADDED: Destroy old instance
+             // This line is for view navigation, it's fine.
              if (state.sortableTasks) state.sortableTasks.destroy();
 
              const q = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId), where('workspaceId', '==', state.workspaceId));
              state.unsubTasks = onSnapshot(q, (snapshot) => {
+
+                // --- THIS IS THE FIX ---
+                // Destroy the *previous* Sortable instance before rebuilding the list
+                if (state.sortableTasks) {
+                    state.sortableTasks.destroy();
+                    state.sortableTasks = null;
+                }
+                // --- END FIX ---
+
                  const listEl = document.getElementById('tasks-list'); listEl.innerHTML = '';
                  if (snapshot.empty) { document.getElementById('no-tasks-msg').classList.remove('hidden'); } 
                  else {
                      document.getElementById('no-tasks-msg').classList.add('hidden');
                      let tasks = []; snapshot.forEach(doc => tasks.push({id: doc.id, ...doc.data()}));
                      
-                     // MODIFIED: Sort by 'order' then 'createdAt'
                      tasks.sort((a,b) => (a.order ?? (a.createdAt?.seconds || 0)) - (b.order ?? (b.createdAt?.seconds || 0)));
                      
                      tasks.forEach(task => {
                          const date = task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : '';
                          const el = document.createElement('div');
                          el.className = 'bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 flex items-center justify-between active:bg-blue-50 transition-all group';
-                         // ADDED data-id
                          el.setAttribute('data-id', task.id);
-                         
-                         // MODIFIED innerHTML to add handle and move onclick
                          el.innerHTML = `
                             <div class="flex items-center overflow-hidden flex-1 mr-4">
                                 <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none">
@@ -632,29 +634,22 @@
                                 </button>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300 group-hover:text-blue-500 transition-colors" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
                             </div>`;
-                         // END HTML MODIFICATION
                          state.tempTasks = state.tempTasks || {};
                          state.tempTasks[task.id] = task;
                          listEl.appendChild(el);
                      });
 
-                     // ADDED: Initialize SortableJS
                      state.sortableTasks = new Sortable(listEl, {
                         animation: 150,
                         ghostClass: 'bg-blue-50',
                         handle: '.drag-handle',
-
-                        // --- ADDED FOR MOBILE FIX ---
-                        forceFallback: true, // Ensures a "ghost" element is created
-                        delay: 100,          // Prevents accidental drag on scroll
-                        touchStartThreshold: 5, // Pixels to move before drag starts
-                        // --- END ADDITION ---
-
+                        forceFallback: true, 
+                        delay: 100,          
+                        touchStartThreshold: 5, 
                         onEnd: (evt) => {
                             updateTasksOrder();
                         }
                     });
-                    // END ADDITION
                  }
              });
         }
@@ -679,13 +674,12 @@
         window.confirmCreateTask = async () => {
             const input = document.getElementById('new-task-name'); const name = input.value.trim(); if (!name) return;
             closeModal('new-task-modal'); input.value = '';
-            // MODIFIED: Added 'order' field
             await addDoc(collection(db, `${BASE_PATH}/tasks`), { 
                 workspaceId: state.workspaceId, 
                 buildId: state.currentBuild.id, 
                 name, 
                 createdAt: serverTimestamp(), 
-                order: serverTimestamp(), // Use timestamp for new items
+                order: serverTimestamp(), 
                 createdBy: state.user.uid 
             });
         }
