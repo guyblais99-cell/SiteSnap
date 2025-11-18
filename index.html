@@ -74,7 +74,6 @@
             transition: all 0.3s ease;
             margin-right: 0;
         }
-        /* When the parent container has 'selection-mode-active', expand this wrapper */
         .selection-mode-active .selection-checkbox-wrapper {
             width: 2rem;
             opacity: 1;
@@ -251,7 +250,7 @@
 
     </main>
 
-    <div id="bulk-action-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl transform translate-y-full transition-transform duration-300 z-50 flex items-center justify-between p-4 px-6">
+    <div id="bulk-action-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl transform translate-y-full transition-transform duration-300 z-40 flex items-center justify-between p-4 px-6">
         <div class="font-bold text-gray-700"><span id="selected-count">0</span> Selected</div>
         <div class="flex space-x-4">
             <button onclick="handleBulkDelete()" class="flex items-center bg-red-100 text-red-700 px-4 py-3 rounded-xl font-bold hover:bg-red-200 transition-colors">
@@ -274,7 +273,7 @@
             <h2 class="text-2xl font-extrabold mb-6 text-gray-900">New Build Folder</h2>
             <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">Folder Name</label>
-                <input type="text" id="new-build-name" placeholder="e.g., Project Alpha" class="w-full border-2 border-gray-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg">
+                <input type="text" id="new-build-name" placeholder="e.g., Project Alpha" class="w-full border-2 border-gray-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg" onkeyup="if(event.key === 'Enter') confirmCreateBuild()">
             </div>
             <div class="flex space-x-3">
                 <button onclick="closeModal('new-build-modal')" class="flex-1 py-4 text-gray-700 font-bold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
@@ -288,7 +287,7 @@
             <h2 class="text-2xl font-extrabold mb-6 text-gray-900">New Task</h2>
              <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-900 mb-2 ml-1">Task Name</label>
-                <input type="text" id="new-task-name" placeholder="e.g., Foundation Inspection" class="w-full border-2 border-gray-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg">
+                <input type="text" id="new-task-name" placeholder="e.g., Foundation Inspection" class="w-full border-2 border-gray-200 rounded-xl px-4 py-4 focus:outline-none focus:border-blue-600 transition-colors font-semibold text-lg" onkeyup="if(event.key === 'Enter') confirmCreateTask()">
             </div>
             <div class="flex space-x-3">
                 <button onclick="closeModal('new-task-modal')" class="flex-1 py-4 text-gray-700 font-bold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
@@ -614,30 +613,26 @@
             busyEl.classList.remove('hidden');
 
             try {
-                const batchSize = 500; // safe batch size
+                const batchSize = 500; 
                 let batch = writeBatch(db);
                 let opCount = 0;
 
                 for (const id of state.selectedItems) {
                     if (state.currentView === 'builds') {
                         const buildId = id;
-                        // Delete Build
                         batch.delete(doc(db, `${BASE_PATH}/builds`, buildId));
                         opCount++;
                         
-                        // Find Tasks
                         const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId));
                         const tasksSnap = await getDocs(tasksQ);
                         
                         for (const taskDoc of tasksSnap.docs) {
-                            batch.delete(taskDoc.ref); // Delete Task
+                            batch.delete(taskDoc.ref); 
                             opCount++;
-                            
-                            // Find Images
                             const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
                             const imgsSnap = await getDocs(imgsQ);
                             for (const imgDoc of imgsSnap.docs) {
-                                batch.delete(imgDoc.ref); // Delete Image
+                                batch.delete(imgDoc.ref);
                                 opCount++;
                                 if(opCount >= batchSize) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
                             }
@@ -646,7 +641,6 @@
                          const taskId = id;
                          batch.delete(doc(db, `${BASE_PATH}/tasks`, taskId));
                          opCount++;
-                         
                          const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskId));
                          const imgsSnap = await getDocs(imgsQ);
                          for (const imgDoc of imgsSnap.docs) {
@@ -659,7 +653,7 @@
                 }
                 if (opCount > 0) await batch.commit();
 
-                toggleSelectionMode(); // Exit mode on success
+                toggleSelectionMode(); 
 
             } catch(e) {
                 console.error(e);
@@ -732,7 +726,7 @@
                 const content = await zip.generateAsync({type:"blob"});
                 saveAs(content, `${rootName}_Selected.zip`);
                 
-                toggleSelectionMode(); // Exit mode on success
+                toggleSelectionMode(); 
 
             } catch (e) {
                 console.error(e);
@@ -741,6 +735,52 @@
                 busyEl.classList.add('hidden');
             }
         };
+
+        // --- CREATION LOGIC ---
+        window.confirmCreateBuild = async () => {
+            const input = document.getElementById('new-build-name'); 
+            const name = input.value.trim(); 
+            if (!name) return;
+            
+            try {
+                closeModal('new-build-modal'); 
+                input.value = '';
+                
+                // MODIFIED: order is negative timestamp to force top of list
+                await addDoc(collection(db, `${BASE_PATH}/builds`), { 
+                    workspaceId: state.workspaceId, 
+                    name, 
+                    createdAt: serverTimestamp(), 
+                    order: -Date.now(), // Negative value forces new item to top in ascending sort
+                    createdBy: state.user.uid 
+                });
+            } catch (e) {
+                console.error(e);
+                alert("Failed to create build. Check connection.");
+            }
+        }
+
+        window.confirmCreateTask = async () => {
+            const input = document.getElementById('new-task-name'); 
+            const name = input.value.trim(); 
+            if (!name) return;
+            
+            try {
+                closeModal('new-task-modal'); 
+                input.value = '';
+                await addDoc(collection(db, `${BASE_PATH}/tasks`), { 
+                    workspaceId: state.workspaceId, 
+                    buildId: state.currentBuild.id, 
+                    name, 
+                    createdAt: serverTimestamp(), 
+                    order: serverTimestamp(), 
+                    createdBy: state.user.uid 
+                });
+            } catch (e) {
+                console.error(e);
+                alert("Failed to create task. Check connection.");
+            }
+        }
 
         // --- SORTING HELPERS ---
         function updateBuildsOrder() {
@@ -795,7 +835,6 @@
                         const el = document.createElement('div');
                         el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 transition-all group relative cursor-pointer';
                         el.setAttribute('data-id', build.id);
-                        // Onclick handles both select and navigate based on state
                         el.onclick = () => window.handleItemClick(build.id, 'build');
                         
                         el.innerHTML = `
@@ -821,7 +860,6 @@
                         listEl.appendChild(el);
                     });
 
-                    // Apply selection state if needed after re-render (unlikely but safe)
                     if(state.isSelectionMode) listEl.classList.add('selection-mode-active');
 
                     state.sortableBuilds = new Sortable(listEl, {
@@ -910,19 +948,6 @@
              });
         }
         window.selectTask = (id) => navigateTo('images', state.tempTasks[id]);
-
-        window.confirmCreateTask = async () => {
-            const input = document.getElementById('new-task-name'); const name = input.value.trim(); if (!name) return;
-            closeModal('new-task-modal'); input.value = '';
-            await addDoc(collection(db, `${BASE_PATH}/tasks`), { 
-                workspaceId: state.workspaceId, 
-                buildId: state.currentBuild.id, 
-                name, 
-                createdAt: serverTimestamp(), 
-                order: serverTimestamp(), 
-                createdBy: state.user.uid 
-            });
-        }
 
         function loadImages(taskId) {
             if (!state.user) return;
