@@ -37,12 +37,7 @@
 
         /* --- MODIFIED DRAG/GHOST STYLES --- */
         
-        /* 1. This hides the ORIGINAL element being dragged */
-        .sortable-drag {
-            opacity: 0 !important;
-        }
-
-        /* 2. This styles the CLONE that follows your finger */
+        .sortable-drag { opacity: 0 !important; }
         .sortable-fallback-styling {
             opacity: 1 !important;
             background-color: rgba(255, 255, 255, 0.9) !important;
@@ -55,34 +50,22 @@
             display: block !important; 
             visibility: visible !important;
         }
-        
-        /* 3. This is the new PLACEHOLDER for the Build Folders */
         .build-ghost {
-            background: #DBEAFE !important; /* blue-100 */
-            border: 2px dashed #3B82F6 !important; /* blue-500 */
-            border-radius: 1rem !important; /* 16px */
-            color: transparent !important; /* Hide text */
+            background: #DBEAFE !important; 
+            border: 2px dashed #3B82F6 !important; 
+            border-radius: 1rem !important; 
+            color: transparent !important; 
             opacity: 1 !important;
         }
-        /* This hides the content *inside* the item being replaced */
-        .build-ghost > * {
-            opacity: 0 !important;
-            visibility: hidden !important;
-        }
-
-        /* 4. This is the new PLACEHOLDER for the Task List */
+        .build-ghost > * { opacity: 0 !important; visibility: hidden !important; }
         .task-ghost {
             background: #DBEAFE !important; 
             border: 2px dashed #3B82F6 !important; 
-            border-radius: 1.125rem !important; /* 18px */
+            border-radius: 1.125rem !important; 
             color: transparent !important;
             opacity: 1 !important;
         }
-        /* This hides the content *inside* the item being replaced */
-        .task-ghost > * {
-            opacity: 0 !important;
-            visibility: hidden !important;
-        }
+        .task-ghost > * { opacity: 0 !important; visibility: hidden !important; }
         /* --- END MODIFICATION --- */
     </style>
 </head>
@@ -313,12 +296,11 @@
             currentTask: null,
             user: null,
             currentImageId: null,
-            currentImageData: null, // Store full data for download
+            currentImageData: null,
             imageCountInTask: 0,
             unsubBuilds: null,
             unsubTasks: null,
             unsubImages: null,
-            // ADDED SORTABLE STATE
             sortableBuilds: null,
             sortableTasks: null
         };
@@ -342,7 +324,6 @@
                 document.getElementById('connection-status').classList.replace('bg-red-500', 'bg-green-500');
                 document.getElementById('initial-loader').classList.add('hidden');
                 document.getElementById('join-btn').disabled = false;
-                // Auto-login check
                 const savedWs = localStorage.getItem('lastWorkspaceId');
                 if (savedWs) {
                     document.getElementById('workspace-id-input').value = savedWs;
@@ -368,7 +349,6 @@
             document.getElementById('login-view').classList.add('hidden-view');
             document.getElementById('main-nav').classList.remove('hidden');
             
-            // --- MODIFICATION: Restore last session view ---
             const lastView = localStorage.getItem('lastView');
             const lastBuild = localStorage.getItem('lastBuild');
             const lastTask = localStorage.getItem('lastTask');
@@ -377,11 +357,11 @@
                 try {
                     const build = JSON.parse(lastBuild);
                     const task = JSON.parse(lastTask);
-                    state.currentBuild = build; // Set build context first
-                    navigateTo('images', task); // Then navigate to images
+                    state.currentBuild = build;
+                    navigateTo('images', task);
                 } catch (e) {
                     console.error("Failed to restore session", e);
-                    navigateTo('builds'); // Fallback
+                    navigateTo('builds');
                 }
             } else if (lastView === 'tasks' && lastBuild) {
                 try {
@@ -389,24 +369,20 @@
                     navigateTo('tasks', build);
                 } catch (e) {
                     console.error("Failed to restore session", e);
-                    navigateTo('builds'); // Fallback
+                    navigateTo('builds');
                 }
             } else {
-                // Default to builds view
                 navigateTo('builds');
             }
-            // --- END MODIFICATION ---
         }
 
         window.signOutWorkspace = () => {
             if (confirm("Sign out of current workspace?")) {
                 state.workspaceId = null;
                 localStorage.removeItem('lastWorkspaceId');
-                // --- MODIFICATION: Clear session state on sign out ---
                 localStorage.removeItem('lastView');
                 localStorage.removeItem('lastBuild');
                 localStorage.removeItem('lastTask');
-                // --- END MODIFICATION ---
 
                 if (state.unsubBuilds) state.unsubBuilds();
                 if (state.unsubTasks) state.unsubTasks();
@@ -424,7 +400,6 @@
         }
 
         window.navigateTo = (view, data = null) => {
-            // MODIFIED TO DESTROY SORTABLEJS INSTANCES
             if (state.currentView === 'builds' && view !== 'builds') { 
                 if (state.sortableBuilds) state.sortableBuilds.destroy(); 
                 state.sortableBuilds = null; 
@@ -435,7 +410,6 @@
                 if (state.sortableTasks) state.sortableTasks.destroy(); 
                 state.sortableTasks = null; 
             }
-            // END MODIFICATION
             if (state.currentView === 'images' && view !== 'images') { if (state.unsubImages) state.unsubImages(); state.unsubImages = null; }
             state.currentView = view;
             document.getElementById('main-content').scrollTop = 0; 
@@ -456,7 +430,6 @@
             }
             updateBreadcrumbs();
 
-            // --- MODIFICATION: Save current view to localStorage ---
             if (view === 'builds') {
                 localStorage.setItem('lastView', 'builds');
                 localStorage.removeItem('lastBuild');
@@ -470,7 +443,6 @@
                 localStorage.setItem('lastBuild', JSON.stringify(state.currentBuild));
                 localStorage.setItem('lastTask', JSON.stringify(state.currentTask));
             }
-            // --- END MODIFICATION ---
         }
 
         function showView(viewId) {
@@ -496,22 +468,21 @@
         
         window.navToCurrentBuild = () => navigateTo('tasks', state.currentBuild);
 
-        // --- ADDED ORDER-UPDATE FUNCTIONS ---
         function updateBuildsOrder() {
             const listEl = document.getElementById('builds-list');
-            const items = listEl.querySelectorAll('.bg-white[data-id]'); // Target the items
+            const items = listEl.querySelectorAll('.bg-white[data-id]');
             const batch = writeBatch(db);
             items.forEach((item, index) => {
                 const docId = item.getAttribute('data-id');
                 const docRef = doc(db, `${BASE_PATH}/builds`, docId);
-                batch.update(docRef, { order: index }); // Use index as the new order
+                batch.update(docRef, { order: index });
             });
             batch.commit().catch(e => console.error("Failed to update build order", e));
         }
 
         function updateTasksOrder() {
             const listEl = document.getElementById('tasks-list');
-            const items = listEl.querySelectorAll('.bg-white[data-id]'); // Target the items
+            const items = listEl.querySelectorAll('.bg-white[data-id]');
             const batch = writeBatch(db);
             items.forEach((item, index) => {
                 const docId = item.getAttribute('data-id');
@@ -520,8 +491,6 @@
             });
             batch.commit().catch(e => console.error("Failed to update task order", e));
         }
-        // --- END ADDITION ---
-
 
         function loadBuilds() {
             if (!state.user || !state.workspaceId) return;
@@ -579,7 +548,6 @@
 
                     state.sortableBuilds = new Sortable(listEl, {
                         animation: 150,
-                        // --- MODIFIED ghostClass ---
                         ghostClass: 'build-ghost', 
                         handle: '.drag-handle',    
                         forceFallback: true, 
@@ -601,16 +569,15 @@
              document.getElementById('global-busy-msg').textContent = "Deleting...";
              busyEl.classList.remove('hidden');
              try {
-                 // Cascading delete: Find all tasks, then all images, and delete them in batches
                  const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId));
                  const tasksSnap = await getDocs(tasksQ);
                  const batch = writeBatch(db);
-                 batch.delete(doc(db, `${BASE_PATH}/builds`, buildId)); // Delete build itself
+                 batch.delete(doc(db, `${BASE_PATH}/builds`, buildId)); 
                  for (const taskDoc of tasksSnap.docs) {
-                     batch.delete(taskDoc.ref); // Delete task
+                     batch.delete(taskDoc.ref); 
                      const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
                      const imgsSnap = await getDocs(imgsQ);
-                     imgsSnap.forEach(imgDoc => batch.delete(imgDoc.ref)); // Delete images
+                     imgsSnap.forEach(imgDoc => batch.delete(imgDoc.ref)); 
                  }
                  await batch.commit();
              } catch (e) {
@@ -671,6 +638,11 @@
                                 </div>
                             </div>
                             <div class="flex items-center">
+                                <button onclick="event.stopPropagation(); window.exportTask('${task.id}', '${task.name.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-blue-600 p-2 mr-1 rounded-full transition-colors" title="Export Task ZIP">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </button>
                                 <button onclick="event.stopPropagation(); window.deleteTask('${task.id}', '${task.name.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 p-2 mr-1 rounded-full transition-colors" title="Delete Task">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -685,7 +657,6 @@
 
                      state.sortableTasks = new Sortable(listEl, {
                         animation: 150,
-                        // --- MODIFIED ghostClass ---
                         ghostClass: 'task-ghost',
                         handle: '.drag-handle',
                         forceFallback: true, 
@@ -758,9 +729,7 @@
             const file = event.target.files[0]; if (!file || !state.currentTask) return;
             document.getElementById('upload-progress').classList.remove('hidden');
             try {
-                // --- MODIFICATION: Changed from 800, 0.5 to 1024, 0.7 ---
                 const compressedBase64 = await compressImage(file, 1024, 0.7);
-                // --- END MODIFICATION ---
 
                 const nextNum = state.imageCountInTask + 1;
                 const safeTaskName = state.currentTask.name.replace(/[^a-z0-9]/gi, '-');
@@ -794,7 +763,50 @@
             saveAs(state.currentImageData.base64, state.currentImageData.displayName || 'site_photo.jpg');
         }
 
-        // --- EXPORT FUNCTIONALITY ---
+        // --- NEW TASK EXPORT FUNCTION ---
+        window.exportTask = async (taskId, taskName) => {
+            const busyEl = document.getElementById('global-busy');
+            const msgEl = document.getElementById('global-busy-msg');
+            busyEl.classList.remove('hidden');
+            msgEl.textContent = `Exporting "${taskName}"...`;
+
+            try {
+                const zip = new JSZip();
+                const taskFolder = zip.folder(taskName.replace(/[^a-z0-9\s-]/gi, ''));
+
+                const q = query(collection(db, `${BASE_PATH}/images`), 
+                    where('taskId', '==', taskId), 
+                    where('workspaceId', '==', state.workspaceId)
+                );
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    alert("No images to export in this task.");
+                    return;
+                }
+
+                snap.forEach((doc, index) => {
+                    const data = doc.data();
+                    let filename = data.displayName || `image_${index + 1}.jpg`;
+                    if (!filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.jpeg') && !filename.toLowerCase().endsWith('.png')) {
+                            filename += '.jpg';
+                    }
+                    const base64Data = data.base64.split(',')[1];
+                    taskFolder.file(filename, base64Data, {base64: true});
+                });
+
+                const content = await zip.generateAsync({type:"blob"});
+                saveAs(content, `${taskName}_export.zip`);
+
+            } catch(e) {
+                console.error(e);
+                alert("Task export failed.");
+            } finally {
+                busyEl.classList.add('hidden');
+            }
+        }
+
+        // --- EXISTING BUILD EXPORT ---
         window.exportBuild = async (buildId, buildName) => {
             const busyEl = document.getElementById('global-busy');
             const msgEl = document.getElementById('global-busy-msg');
