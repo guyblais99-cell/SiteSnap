@@ -35,8 +35,7 @@
         @-webkit-keyframes spinner { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- MODIFIED DRAG/GHOST STYLES --- */
-        
+        /* --- SORTABLE STYLES --- */
         .sortable-drag { opacity: 0 !important; }
         .sortable-fallback-styling {
             opacity: 1 !important;
@@ -66,7 +65,40 @@
             opacity: 1 !important;
         }
         .task-ghost > * { opacity: 0 !important; visibility: hidden !important; }
-        /* --- END MODIFICATION --- */
+        
+        /* --- SELECTION MODE STYLES --- */
+        .selection-checkbox-wrapper {
+            width: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+            margin-right: 0;
+        }
+        /* When the parent container has 'selection-mode-active', expand this wrapper */
+        .selection-mode-active .selection-checkbox-wrapper {
+            width: 2rem;
+            opacity: 1;
+            margin-right: 0.5rem;
+        }
+
+        .custom-checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 0.375rem;
+            border: 2px solid #D1D5DB;
+            appearance: none;
+            background-color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .custom-checkbox:checked {
+            background-color: #2563EB;
+            border-color: #2563EB;
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 h-[100dvh] flex flex-col">
@@ -75,7 +107,7 @@
         <div class="w-full max-w-5xl mx-auto flex items-center justify-between">
             <div class="flex items-center flex-1 overflow-hidden mr-2">
                  <div id="nav-breadcrumbs" class="flex items-center text-lg font-bold truncate">
-                     </div>
+                 </div>
             </div>
             <div class="flex items-center flex-shrink-0">
                 <span id="workspace-badge" class="hidden md:inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded"></span>
@@ -135,14 +167,19 @@
         <div id="builds-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-extrabold text-gray-900">Build Folders</h1>
-                <button onclick="openModal('new-build-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center transition-all shadow-sm active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    New
-                </button>
+                <div class="flex space-x-2">
+                    <button id="select-btn-builds" onclick="toggleSelectionMode()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-xl font-bold transition-all active:scale-95">
+                        Select
+                    </button>
+                    <button onclick="openModal('new-build-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center transition-all shadow-sm active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        New
+                    </button>
+                </div>
             </div>
-            <div id="builds-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+            <div id="builds-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-24">
                 </div>
              <div id="no-builds-msg" class="hidden flex flex-col items-center justify-center py-16 text-gray-500">
                 <div class="bg-white p-6 rounded-full shadow-sm mb-4">
@@ -156,18 +193,23 @@
 
         <div id="tasks-view" class="view-container hidden-view p-4 w-full max-w-5xl mx-auto">
             <div class="flex justify-between items-center mb-6">
-                <div class="overflow-hidden">
+                <div class="overflow-hidden flex-1">
                      <h1 id="current-build-title" class="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate pr-4 leading-tight">Build Name</h1>
                      <p class="text-gray-500 font-bold">Task List</p>
                 </div>
-                <button onclick="openModal('new-task-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center flex-shrink-0 transition-all shadow-sm active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    New
-                </button>
+                <div class="flex space-x-2 flex-shrink-0">
+                    <button id="select-btn-tasks" onclick="toggleSelectionMode()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-xl font-bold transition-all active:scale-95">
+                        Select
+                    </button>
+                    <button onclick="openModal('new-task-modal')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center transition-all shadow-sm active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        New
+                    </button>
+                </div>
             </div>
-            <div id="tasks-list" class="space-y-3 pb-20">
+            <div id="tasks-list" class="space-y-3 pb-24">
                 </div>
             <div id="no-tasks-msg" class="hidden flex flex-col items-center justify-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-200">
                 <p class="font-bold text-lg text-gray-700">No tasks created yet</p>
@@ -208,6 +250,24 @@
         </div>
 
     </main>
+
+    <div id="bulk-action-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl transform translate-y-full transition-transform duration-300 z-50 flex items-center justify-between p-4 px-6">
+        <div class="font-bold text-gray-700"><span id="selected-count">0</span> Selected</div>
+        <div class="flex space-x-4">
+            <button onclick="handleBulkDelete()" class="flex items-center bg-red-100 text-red-700 px-4 py-3 rounded-xl font-bold hover:bg-red-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </button>
+            <button onclick="handleBulkDownload()" class="flex items-center bg-blue-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+            </button>
+        </div>
+    </div>
 
     <div id="new-build-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-end sm:items-center justify-center p-4 backdrop-blur-sm transition-all">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 sm:p-8 animate-slide-up sm:animate-none shadow-2xl">
@@ -302,7 +362,9 @@
             unsubTasks: null,
             unsubImages: null,
             sortableBuilds: null,
-            sortableTasks: null
+            sortableTasks: null,
+            selectedItems: new Set(),
+            isSelectionMode: false // Track mode
         };
 
         const loaderTimeout = setTimeout(() => {
@@ -400,6 +462,9 @@
         }
 
         window.navigateTo = (view, data = null) => {
+            // Reset selection mode on navigation
+            if (state.isSelectionMode) toggleSelectionMode();
+            
             if (state.currentView === 'builds' && view !== 'builds') { 
                 if (state.sortableBuilds) state.sortableBuilds.destroy(); 
                 state.sortableBuilds = null; 
@@ -468,6 +533,216 @@
         
         window.navToCurrentBuild = () => navigateTo('tasks', state.currentBuild);
 
+        // --- SELECTION MODE LOGIC ---
+        window.toggleSelectionMode = () => {
+            state.isSelectionMode = !state.isSelectionMode;
+            state.selectedItems.clear();
+            
+            // Update buttons text
+            const btnIds = ['select-btn-builds', 'select-btn-tasks'];
+            btnIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if(btn) {
+                    btn.textContent = state.isSelectionMode ? 'Cancel' : 'Select';
+                    if(state.isSelectionMode) btn.classList.replace('text-gray-800', 'text-blue-600');
+                    else btn.classList.replace('text-blue-600', 'text-gray-800');
+                }
+            });
+
+            // Update Container Classes
+            const listIds = ['builds-list', 'tasks-list'];
+            listIds.forEach(id => {
+                const list = document.getElementById(id);
+                if(list) {
+                    if(state.isSelectionMode) list.classList.add('selection-mode-active');
+                    else list.classList.remove('selection-mode-active');
+                }
+            });
+            
+            // Uncheck visible checkboxes visually
+            document.querySelectorAll('.custom-checkbox').forEach(cb => cb.checked = false);
+            
+            updateBulkActionBar();
+        };
+
+        window.handleItemClick = (id, type) => {
+            if (state.isSelectionMode) {
+                // Toggle Selection
+                const checkbox = document.querySelector(`div[data-id="${id}"] .custom-checkbox`);
+                if (state.selectedItems.has(id)) {
+                    state.selectedItems.delete(id);
+                    if(checkbox) checkbox.checked = false;
+                } else {
+                    state.selectedItems.add(id);
+                    if(checkbox) checkbox.checked = true;
+                }
+                updateBulkActionBar();
+            } else {
+                // Normal Navigation
+                if (type === 'build') {
+                    window.selectBuild(id);
+                } else {
+                    window.selectTask(id);
+                }
+            }
+        };
+
+        function updateBulkActionBar() {
+            const bar = document.getElementById('bulk-action-bar');
+            const countEl = document.getElementById('selected-count');
+            const count = state.selectedItems.size;
+            
+            countEl.textContent = count;
+            if (count > 0) {
+                bar.classList.remove('translate-y-full');
+            } else {
+                bar.classList.add('translate-y-full');
+            }
+        }
+
+        window.handleBulkDelete = async () => {
+            const count = state.selectedItems.size;
+            if (count === 0) return;
+            
+            const type = state.currentView === 'builds' ? 'folder(s)' : 'task(s)';
+            
+            // --- CONFIRMATION DIALOG ---
+            if (!confirm(`Are you sure you want to delete ${count} ${type}?\n\nThis cannot be undone and will delete all contained data.`)) return;
+
+            const busyEl = document.getElementById('global-busy');
+            document.getElementById('global-busy-msg').textContent = "Deleting...";
+            busyEl.classList.remove('hidden');
+
+            try {
+                const batchSize = 500; // safe batch size
+                let batch = writeBatch(db);
+                let opCount = 0;
+
+                for (const id of state.selectedItems) {
+                    if (state.currentView === 'builds') {
+                        const buildId = id;
+                        // Delete Build
+                        batch.delete(doc(db, `${BASE_PATH}/builds`, buildId));
+                        opCount++;
+                        
+                        // Find Tasks
+                        const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId));
+                        const tasksSnap = await getDocs(tasksQ);
+                        
+                        for (const taskDoc of tasksSnap.docs) {
+                            batch.delete(taskDoc.ref); // Delete Task
+                            opCount++;
+                            
+                            // Find Images
+                            const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
+                            const imgsSnap = await getDocs(imgsQ);
+                            for (const imgDoc of imgsSnap.docs) {
+                                batch.delete(imgDoc.ref); // Delete Image
+                                opCount++;
+                                if(opCount >= batchSize) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+                            }
+                        }
+                    } else if (state.currentView === 'tasks') {
+                         const taskId = id;
+                         batch.delete(doc(db, `${BASE_PATH}/tasks`, taskId));
+                         opCount++;
+                         
+                         const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskId));
+                         const imgsSnap = await getDocs(imgsQ);
+                         for (const imgDoc of imgsSnap.docs) {
+                            batch.delete(imgDoc.ref);
+                            opCount++;
+                            if(opCount >= batchSize) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+                         }
+                    }
+                    if(opCount >= batchSize) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+                }
+                if (opCount > 0) await batch.commit();
+
+                toggleSelectionMode(); // Exit mode on success
+
+            } catch(e) {
+                console.error(e);
+                alert("Some deletions failed. See console.");
+            } finally {
+                busyEl.classList.add('hidden');
+            }
+        };
+
+        window.handleBulkDownload = async () => {
+            const count = state.selectedItems.size;
+            if (count === 0) return;
+
+            const busyEl = document.getElementById('global-busy');
+            const msgEl = document.getElementById('global-busy-msg');
+            busyEl.classList.remove('hidden');
+            msgEl.textContent = "Preparing download...";
+
+            try {
+                const zip = new JSZip();
+                let rootName = "Archive";
+                
+                if (state.currentView === 'builds') rootName = `Workspace_Export`;
+                else if (state.currentBuild) rootName = state.currentBuild.name;
+
+                for (const id of state.selectedItems) {
+                    let itemName = "Item";
+                    if (state.currentView === 'builds') {
+                        const item = state.tempBuilds[id];
+                        itemName = item.name;
+                        const buildFolder = zip.folder(itemName.replace(/[^a-z0-9\s-]/gi, ''));
+                        
+                        const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', id), where('workspaceId', '==', state.workspaceId));
+                        const tasksSnap = await getDocs(tasksQ);
+                        
+                        for (const taskDoc of tasksSnap.docs) {
+                            const taskData = taskDoc.data();
+                            const taskFolder = buildFolder.folder(taskData.name.replace(/[^a-z0-9\s-]/gi, ''));
+                            
+                            const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
+                            const imgsSnap = await getDocs(imgsQ);
+                            
+                            imgsSnap.forEach((imgDoc, idx) => {
+                                const data = imgDoc.data();
+                                let filename = data.displayName || `image_${idx + 1}.jpg`;
+                                if (!filename.toLowerCase().match(/\.(jpg|jpeg|png)$/)) filename += '.jpg';
+                                const base64Data = data.base64.split(',')[1];
+                                taskFolder.file(filename, base64Data, {base64: true});
+                            });
+                        }
+
+                    } else {
+                        const item = state.tempTasks[id];
+                        itemName = item.name;
+                        const taskFolder = zip.folder(itemName.replace(/[^a-z0-9\s-]/gi, ''));
+                        
+                        const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', id), where('workspaceId', '==', state.workspaceId));
+                        const imgsSnap = await getDocs(imgsQ);
+                        
+                        imgsSnap.forEach((imgDoc, idx) => {
+                            const data = imgDoc.data();
+                            let filename = data.displayName || `image_${idx + 1}.jpg`;
+                            if (!filename.toLowerCase().match(/\.(jpg|jpeg|png)$/)) filename += '.jpg';
+                            const base64Data = data.base64.split(',')[1];
+                            taskFolder.file(filename, base64Data, {base64: true});
+                        });
+                    }
+                }
+
+                const content = await zip.generateAsync({type:"blob"});
+                saveAs(content, `${rootName}_Selected.zip`);
+                
+                toggleSelectionMode(); // Exit mode on success
+
+            } catch (e) {
+                console.error(e);
+                alert("Download failed.");
+            } finally {
+                busyEl.classList.add('hidden');
+            }
+        };
+
+        // --- SORTING HELPERS ---
         function updateBuildsOrder() {
             const listEl = document.getElementById('builds-list');
             const items = listEl.querySelectorAll('.bg-white[data-id]');
@@ -506,6 +781,8 @@
                 }
 
                 const listEl = document.getElementById('builds-list'); listEl.innerHTML = '';
+                state.tempBuilds = {}; 
+
                 if (snapshot.empty) { document.getElementById('no-builds-msg').classList.remove('hidden'); } 
                 else {
                     document.getElementById('no-builds-msg').classList.add('hidden');
@@ -516,35 +793,36 @@
                     builds.forEach(build => {
                         const date = build.createdAt ? new Date(build.createdAt.seconds * 1000).toLocaleDateString() : '';
                         const el = document.createElement('div');
-                        el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 transition-all group relative';
+                        el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 transition-all group relative cursor-pointer';
                         el.setAttribute('data-id', build.id);
+                        // Onclick handles both select and navigate based on state
+                        el.onclick = () => window.handleItemClick(build.id, 'build');
+                        
                         el.innerHTML = `
-                            <div class="flex items-center">
-                                <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none mr-2">
+                            <div class="flex items-center w-full">
+                                <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none mr-1 flex-shrink-0" onclick="event.stopPropagation()">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                                 </div>
-                                <div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors" onclick="window.selectBuild('${build.id}')">
+                                
+                                <div class="selection-checkbox-wrapper flex-shrink-0">
+                                    <input type="checkbox" class="custom-checkbox pointer-events-none">
+                                </div>
+
+                                <div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                                 </div>
-                                <div class="truncate flex-1 mr-2" onclick="window.selectBuild('${build.id}')">
-                                    <h3 class="text-lg font-bold text-gray-900 truncate">${build.name}</h3>
+                                
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-lg font-bold text-gray-900 break-words whitespace-normal leading-snug mb-1">${build.name}</h3>
                                     <p class="text-sm text-gray-500 font-medium">${date}</p>
                                 </div>
-                                <button onclick="event.stopPropagation(); window.exportBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="text-gray-400 hover:text-blue-600 p-2 hover:bg-blue-100 rounded-full transition-colors mr-8 flex-shrink-0" title="Export Project ZIP">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <button onclick="event.stopPropagation(); window.deleteBuild('${build.id}', '${build.name.replace(/'/g, "\\'")}')" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 p-2 rounded-full transition-colors z-10" title="Delete Build">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>`;
-                        state.tempBuilds = state.tempBuilds || {};
+                            </div>`;
                         state.tempBuilds[build.id] = build;
                         listEl.appendChild(el);
                     });
+
+                    // Apply selection state if needed after re-render (unlikely but safe)
+                    if(state.isSelectionMode) listEl.classList.add('selection-mode-active');
 
                     state.sortableBuilds = new Sortable(listEl, {
                         animation: 150,
@@ -563,42 +841,6 @@
         }
         window.selectBuild = (id) => navigateTo('tasks', state.tempBuilds[id]);
 
-        window.deleteBuild = async (buildId, buildName) => {
-             if (!confirm(`Are you sure you want to delete "${buildName}"?\n\nTHIS WILL DELETE ALL TASKS AND PHOTOS INSIDE IT.`)) return;
-             const busyEl = document.getElementById('global-busy');
-             document.getElementById('global-busy-msg').textContent = "Deleting...";
-             busyEl.classList.remove('hidden');
-             try {
-                 const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId));
-                 const tasksSnap = await getDocs(tasksQ);
-                 const batch = writeBatch(db);
-                 batch.delete(doc(db, `${BASE_PATH}/builds`, buildId)); 
-                 for (const taskDoc of tasksSnap.docs) {
-                     batch.delete(taskDoc.ref); 
-                     const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
-                     const imgsSnap = await getDocs(imgsQ);
-                     imgsSnap.forEach(imgDoc => batch.delete(imgDoc.ref)); 
-                 }
-                 await batch.commit();
-             } catch (e) {
-                 console.error(e); alert("Delete failed. See console.");
-             } finally {
-                 busyEl.classList.add('hidden');
-             }
-        }
-
-        window.confirmCreateBuild = async () => {
-            const input = document.getElementById('new-build-name'); const name = input.value.trim(); if (!name) return;
-            closeModal('new-build-modal'); input.value = '';
-            await addDoc(collection(db, `${BASE_PATH}/builds`), { 
-                workspaceId: state.workspaceId, 
-                name, 
-                createdAt: serverTimestamp(), 
-                order: serverTimestamp(), 
-                createdBy: state.user.uid 
-            });
-        }
-
         function loadTasks(buildId) {
              if (!state.user) return;
              if (state.sortableTasks) state.sortableTasks.destroy();
@@ -612,6 +854,8 @@
                 }
 
                  const listEl = document.getElementById('tasks-list'); listEl.innerHTML = '';
+                 state.tempTasks = {};
+
                  if (snapshot.empty) { document.getElementById('no-tasks-msg').classList.remove('hidden'); } 
                  else {
                      document.getElementById('no-tasks-msg').classList.add('hidden');
@@ -622,37 +866,33 @@
                      tasks.forEach(task => {
                          const date = task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : '';
                          const el = document.createElement('div');
-                         el.className = 'bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 flex items-center justify-between active:bg-blue-50 transition-all group';
+                         el.className = 'bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 flex items-center active:bg-blue-50 transition-all group cursor-pointer';
                          el.setAttribute('data-id', task.id);
+                         el.onclick = () => window.handleItemClick(task.id, 'task');
+                         
                          el.innerHTML = `
-                            <div class="flex items-center overflow-hidden flex-1 mr-4">
-                                <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                                </div>
-                                <div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors" onclick="window.selectTask('${task.id}')">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                </div>
-                                <div class="truncate" onclick="window.selectTask('${task.id}')">
-                                    <h4 class="text-lg font-bold text-gray-900 truncate">${task.name}</h4>
-                                    <p class="text-sm font-medium text-gray-500">${date}</p>
-                                </div>
+                            <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none flex-shrink-0 mr-1" onclick="event.stopPropagation()">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                             </div>
-                            <div class="flex items-center">
-                                <button onclick="event.stopPropagation(); window.exportTask('${task.id}', '${task.name.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-blue-600 p-2 mr-1 rounded-full transition-colors" title="Export Task ZIP">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                </button>
-                                <button onclick="event.stopPropagation(); window.deleteTask('${task.id}', '${task.name.replace(/'/g, "\\'")}')" class="text-gray-300 hover:text-red-500 p-2 rounded-full transition-colors" title="Delete Task">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
+                            
+                            <div class="selection-checkbox-wrapper flex-shrink-0">
+                                <input type="checkbox" class="custom-checkbox pointer-events-none">
+                            </div>
+
+                            <div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                            </div>
+                            
+                            <div class="flex-1 min-w-0 py-1">
+                                <h4 class="text-lg font-bold text-gray-900 break-words whitespace-normal leading-snug mb-1">${task.name}</h4>
+                                <p class="text-sm font-medium text-gray-500">${date}</p>
                             </div>`;
-                         state.tempTasks = state.tempTasks || {};
+                            
                          state.tempTasks[task.id] = task;
                          listEl.appendChild(el);
                      });
+                     
+                     if(state.isSelectionMode) listEl.classList.add('selection-mode-active');
 
                      state.sortableTasks = new Sortable(listEl, {
                         animation: 150,
@@ -670,22 +910,6 @@
              });
         }
         window.selectTask = (id) => navigateTo('images', state.tempTasks[id]);
-
-        window.deleteTask = async (taskId, taskName) => {
-             if (!confirm(`Delete task "${taskName}" and all its photos?`)) return;
-             const busyEl = document.getElementById('global-busy');
-             document.getElementById('global-busy-msg').textContent = "Deleting...";
-             busyEl.classList.remove('hidden');
-             try {
-                 const batch = writeBatch(db);
-                 batch.delete(doc(db, `${BASE_PATH}/tasks`, taskId));
-                 const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskId));
-                 const imgsSnap = await getDocs(imgsQ);
-                 imgsSnap.forEach(imgDoc => batch.delete(imgDoc.ref));
-                 await batch.commit();
-             } catch(e) { console.error(e); alert("Delete failed."); }
-             finally { busyEl.classList.add('hidden'); }
-        }
 
         window.confirmCreateTask = async () => {
             const input = document.getElementById('new-task-name'); const name = input.value.trim(); if (!name) return;
@@ -761,104 +985,6 @@
             if (!state.currentImageData) return;
             saveAs(state.currentImageData.base64, state.currentImageData.displayName || 'site_photo.jpg');
         }
-
-        // --- NEW TASK EXPORT FUNCTION ---
-        window.exportTask = async (taskId, taskName) => {
-            const busyEl = document.getElementById('global-busy');
-            const msgEl = document.getElementById('global-busy-msg');
-            busyEl.classList.remove('hidden');
-            msgEl.textContent = `Exporting "${taskName}"...`;
-
-            try {
-                const zip = new JSZip();
-                const taskFolder = zip.folder(taskName.replace(/[^a-z0-9\s-]/gi, ''));
-
-                const q = query(collection(db, `${BASE_PATH}/images`), 
-                    where('taskId', '==', taskId), 
-                    where('workspaceId', '==', state.workspaceId)
-                );
-                const snap = await getDocs(q);
-
-                if (snap.empty) {
-                    alert("No images to export in this task.");
-                    return;
-                }
-
-                snap.forEach((doc, index) => {
-                    const data = doc.data();
-                    let filename = data.displayName || `image_${index + 1}.jpg`;
-                    if (!filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.jpeg') && !filename.toLowerCase().endsWith('.png')) {
-                            filename += '.jpg';
-                    }
-                    const base64Data = data.base64.split(',')[1];
-                    taskFolder.file(filename, base64Data, {base64: true});
-                });
-
-                const content = await zip.generateAsync({type:"blob"});
-                saveAs(content, `${taskName}_export.zip`);
-
-            } catch(e) {
-                console.error(e);
-                alert("Task export failed.");
-            } finally {
-                busyEl.classList.add('hidden');
-            }
-        }
-
-        // --- EXISTING BUILD EXPORT ---
-        window.exportBuild = async (buildId, buildName) => {
-            const busyEl = document.getElementById('global-busy');
-            const msgEl = document.getElementById('global-busy-msg');
-            busyEl.classList.remove('hidden');
-            msgEl.textContent = `Exporting "${buildName}"...`;
-
-            try {
-                const zip = new JSZip();
-                const buildFolder = zip.folder(buildName.replace(/[^a-z0-9\s-]/gi, ''));
-
-                msgEl.textContent = "Fetching tasks...";
-                const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId), where('workspaceId', '==', state.workspaceId));
-                const tasksSnap = await getDocs(tasksQ);
-                const tasks = [];
-                tasksSnap.forEach(doc => tasks.push({id: doc.id, name: doc.data().name}));
-
-                let totalImages = 0;
-                for (let i = 0; i < tasks.length; i++) {
-                    const task = tasks[i];
-                    msgEl.textContent = `Processing task ${i+1}/${tasks.length}: ${task.name}`;
-                    const taskFolder = buildFolder.folder(task.name.replace(/[^a-z0-9\s-]/gi, ''));
-
-                    const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', task.id), where('workspaceId', '==', state.workspaceId));
-                    const imgsSnap = await getDocs(imgsQ);
-                    
-                    imgsSnap.forEach((doc, index) => {
-                        const data = doc.data();
-                        let filename = data.displayName || `image_${index + 1}.jpg`;
-                        if (!filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.jpeg') && !filename.toLowerCase().endsWith('.png')) {
-                             filename += '.jpg';
-                        }
-                        const base64Data = data.base64.split(',')[1];
-                        taskFolder.file(filename, base64Data, {base64: true});
-                        totalImages++;
-                    });
-                }
-
-                if (totalImages === 0) {
-                    alert("No images found in this build to export.");
-                    return;
-                }
-
-                msgEl.textContent = "Zipping files...";
-                const content = await zip.generateAsync({type:"blob"});
-                saveAs(content, `${buildName}_export.zip`);
-
-            } catch (e) {
-                console.error("Export failed", e);
-                alert("Export failed. See console for details.");
-            } finally {
-                busyEl.classList.add('hidden');
-            }
-        };
 
         function compressImage(file, maxWidth, quality) {
             return new Promise((resolve, reject) => {
