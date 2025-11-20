@@ -298,11 +298,27 @@
     <div id="thumbnail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-all">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center">
             <h3 class="text-xl font-bold text-gray-900 mb-4">Folder Cover Image</h3>
-            <div class="space-y-3">
-                <label class="block w-full bg-blue-50 text-blue-700 font-bold py-4 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors">
-                    Upload / Take Photo
+            
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <label class="bg-blue-50 text-blue-700 p-4 rounded-xl cursor-pointer hover:bg-blue-100 flex flex-col items-center justify-center transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="text-sm font-bold">Camera</span>
+                    <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleThumbnailUpload(event)">
+                </label>
+
+                <label class="bg-blue-50 text-blue-700 p-4 rounded-xl cursor-pointer hover:bg-blue-100 flex flex-col items-center justify-center transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-sm font-bold">Gallery</span>
                     <input type="file" accept="image/*" class="hidden" onchange="handleThumbnailUpload(event)">
                 </label>
+            </div>
+
+            <div class="space-y-3">
                 <button onclick="handleThumbnailRemove()" class="block w-full bg-red-50 text-red-700 font-bold py-4 rounded-xl hover:bg-red-100 transition-colors">
                     Remove Current Cover
                 </button>
@@ -661,7 +677,6 @@
 
         // --- THUMBNAIL LOGIC ---
         window.openThumbnailManager = () => {
-            // Double check we have 1 item
             if (state.selectedItems.size !== 1) return;
             document.getElementById('thumbnail-modal').classList.remove('hidden');
         }
@@ -673,20 +688,17 @@
             const buildId = state.selectedItems.values().next().value;
             if (!buildId) return;
 
-            // Close modal and show busy
             closeModal('thumbnail-modal');
             const busyEl = document.getElementById('global-busy');
             document.getElementById('global-busy-msg').textContent = "Updating Cover...";
             busyEl.classList.remove('hidden');
 
             try {
-                // Compress to small thumbnail (200px width, 0.6 quality)
                 const thumbnailBase64 = await compressImage(file, 200, 0.6);
                 
                 const docRef = doc(db, `${BASE_PATH}/builds`, buildId);
                 await updateDoc(docRef, { thumbnail: thumbnailBase64 });
                 
-                // Exit selection mode on success
                 toggleSelectionMode();
 
             } catch (e) {
