@@ -361,7 +361,7 @@
     <div id="image-preview-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col transition-opacity select-none">
          <div class="flex justify-between p-6 pt-12 z-50 relative pointer-events-none">
              <div class="flex items-center space-x-4 pointer-events-auto">
-                  <button onclick="deleteCurrentImage()" class="text-white p-2 bg-red-600 bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all backdrop-blur-md flex items-center justify-center">
+                  <button id="modal-delete-btn" onclick="deleteCurrentImage()" class="text-white p-2 bg-red-600 bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all backdrop-blur-md flex items-center justify-center">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -380,10 +380,10 @@
          </div>
          
          <div class="flex-1 relative overflow-hidden w-full h-full" id="preview-wrapper">
-             <button onclick="showPrevImage(event)" class="absolute left-2 top-1/2 transform -translate-y-1/2 z-40 text-white bg-black bg-opacity-30 hover:bg-opacity-50 p-3 rounded-full hidden md:block cursor-pointer">
+             <button id="prev-arrow" onclick="showPrevImage(event)" class="absolute left-2 top-1/2 transform -translate-y-1/2 z-40 text-white bg-black bg-opacity-30 hover:bg-opacity-50 p-3 rounded-full hidden md:block cursor-pointer">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
              </button>
-             <button onclick="showNextImage(event)" class="absolute right-2 top-1/2 transform -translate-y-1/2 z-40 text-white bg-black bg-opacity-30 hover:bg-opacity-50 p-3 rounded-full hidden md:block cursor-pointer">
+             <button id="next-arrow" onclick="showNextImage(event)" class="absolute right-2 top-1/2 transform -translate-y-1/2 z-40 text-white bg-black bg-opacity-30 hover:bg-opacity-50 p-3 rounded-full hidden md:block cursor-pointer">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
              </button>
 
@@ -694,7 +694,7 @@
             busyEl.classList.remove('hidden');
 
             try {
-                const thumbnailBase64 = await compressImage(file, 200, 0.6);
+                const thumbnailBase64 = await compressImage(file, 1024, 0.7);
                 
                 const docRef = doc(db, `${BASE_PATH}/builds`, buildId);
                 await updateDoc(docRef, { thumbnail: thumbnailBase64 });
@@ -908,6 +908,24 @@
             batch.commit();
         }
 
+        // --- NEW: Thumbnail Preview Logic ---
+        window.openThumbnailPreview = (base64) => {
+            resetZoom();
+            document.getElementById('preview-image-el').src = base64;
+            document.getElementById('preview-name').textContent = "Folder Cover";
+            document.getElementById('preview-meta').textContent = "";
+            
+            // Disable nav state
+            state.currentImageList = [];
+            state.currentImageIndex = -1;
+            
+            // Hide delete button, show modal
+            document.getElementById('modal-delete-btn').classList.add('hidden');
+            document.getElementById('prev-arrow').classList.add('hidden');
+            document.getElementById('next-arrow').classList.add('hidden');
+            document.getElementById('image-preview-modal').classList.remove('hidden');
+        }
+
         function loadBuilds() {
             if (!state.user || !state.workspaceId) return;
             if (state.unsubBuilds) state.unsubBuilds();
@@ -936,8 +954,13 @@
                         // THUMBNAIL LOGIC
                         let iconHtml = '';
                         if (build.thumbnail) {
-                            iconHtml = `<img src="${build.thumbnail}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 mr-4 flex-shrink-0" alt="Cover">`;
+                            // --- MODIFICATION: Clicking Thumbnail opens PREVIEW, stops propogation ---
+                            iconHtml = `<img src="${build.thumbnail}" 
+                                onclick="event.stopPropagation(); window.openThumbnailPreview('${build.thumbnail}')" 
+                                class="w-14 h-14 rounded-xl object-cover border border-gray-200 mr-4 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
+                                alt="Cover">`;
                         } else {
+                            // Default icon clicks through to build
                             iconHtml = `<div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg></div>`;
                         }
 
@@ -1103,6 +1126,12 @@
         window.openImagePreview = (index) => {
             state.currentImageIndex = index;
             updatePreviewModal();
+            // Re-enable UI for normal mode
+            document.getElementById('modal-delete-btn').classList.remove('hidden');
+            if(window.innerWidth >= 768) {
+                document.getElementById('prev-arrow').classList.remove('hidden');
+                document.getElementById('next-arrow').classList.remove('hidden');
+            }
             document.getElementById('image-preview-modal').classList.remove('hidden');
         }
 
@@ -1123,7 +1152,7 @@
 
         window.showNextImage = (e) => {
             if(e) e.stopPropagation();
-            if (state.currentImageIndex < state.currentImageList.length - 1) {
+            if (state.currentImageList.length > 0 && state.currentImageIndex < state.currentImageList.length - 1) {
                 state.currentImageIndex++;
                 updatePreviewModal();
             }
@@ -1131,7 +1160,7 @@
 
         window.showPrevImage = (e) => {
             if(e) e.stopPropagation();
-            if (state.currentImageIndex > 0) {
+            if (state.currentImageList.length > 0 && state.currentImageIndex > 0) {
                 state.currentImageIndex--;
                 updatePreviewModal();
             }
@@ -1246,6 +1275,9 @@
         }, {passive: true});
 
         function handleSwipe() {
+            // Only swipe if there are images in the list
+            if(state.currentImageList.length === 0) return;
+
             const swipeThreshold = 50;
             if (touchEndX < touchStartX - swipeThreshold) showNextImage();
             if (touchEndX > touchStartX + swipeThreshold) showPrevImage();
