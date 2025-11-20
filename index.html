@@ -98,6 +98,21 @@
             border-color: #2563EB;
             background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
         }
+
+        /* --- IMAGE PREVIEW STYLES --- */
+        #preview-container {
+            touch-action: none; 
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        #preview-image-el {
+            transition: transform 0.2s ease-out;
+            will-change: transform;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 h-[100dvh] flex flex-col">
@@ -250,20 +265,23 @@
 
     </main>
 
-    <div id="bulk-action-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl transform translate-y-full transition-transform duration-300 z-40 flex items-center justify-between p-4 px-6">
-        <div class="font-bold text-gray-700"><span id="selected-count">0</span> Selected</div>
-        <div class="flex space-x-4">
+    <div id="bulk-action-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl transform translate-y-full transition-transform duration-300 z-40 flex flex-col sm:flex-row items-center justify-between p-4 px-6 gap-4">
+        <div class="font-bold text-gray-700 flex items-center justify-between w-full sm:w-auto">
+            <span><span id="selected-count">0</span> Selected</span>
+        </div>
+        
+        <div class="flex items-center space-x-4 w-full sm:w-auto justify-end">
             <button onclick="handleBulkDelete()" class="flex items-center bg-red-100 text-red-700 px-4 py-3 rounded-xl font-bold hover:bg-red-200 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                Delete
+                <span class="hidden sm:inline">Delete</span>
             </button>
             <button onclick="handleBulkDownload()" class="flex items-center bg-blue-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Download
+                <span class="hidden sm:inline">Download</span>
             </button>
         </div>
     </div>
@@ -296,9 +314,9 @@
         </div>
     </div>
 
-    <div id="image-preview-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col transition-opacity">
-         <div class="flex justify-between p-6 pt-12 z-50 relative">
-             <div class="flex items-center space-x-4">
+    <div id="image-preview-modal" class="fixed inset-0 bg-black z-50 hidden flex flex-col transition-opacity select-none">
+         <div class="flex justify-between p-6 pt-12 z-50 relative pointer-events-none">
+             <div class="flex items-center space-x-4 pointer-events-auto">
                   <button onclick="deleteCurrentImage()" class="text-white p-2 bg-red-600 bg-opacity-80 rounded-full hover:bg-opacity-100 transition-all backdrop-blur-md flex items-center justify-center">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -310,18 +328,30 @@
                     </svg>
                  </button>
              </div>
-             <button onclick="closeModal('image-preview-modal')" class="text-white p-2 bg-gray-800 bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all backdrop-blur-md">
+             <button onclick="closeModal('image-preview-modal')" class="text-white p-2 bg-gray-800 bg-opacity-50 rounded-full hover:bg-opacity-70 transition-all backdrop-blur-md pointer-events-auto">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
              </button>
          </div>
-         <div class="flex-1 flex items-center justify-center p-4 overflow-hidden absolute inset-0" onclick="closeModal('image-preview-modal')">
-             <img id="preview-image-el" src="" class="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview">
+         
+         <div class="flex-1 relative overflow-hidden w-full h-full" id="preview-wrapper">
+             <button onclick="showPrevImage(event)" class="absolute left-2 top-1/2 transform -translate-y-1/2 z-40 text-white bg-black bg-opacity-30 hover:bg-opacity-50 p-3 rounded-full hidden md:block cursor-pointer">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+             </button>
+             <button onclick="showNextImage(event)" class="absolute right-2 top-1/2 transform -translate-y-1/2 z-40 text-white bg-black bg-opacity-30 hover:bg-opacity-50 p-3 rounded-full hidden md:block cursor-pointer">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+             </button>
+
+             <div id="preview-container">
+                <img id="preview-image-el" src="" class="max-w-full max-h-full object-contain drop-shadow-2xl" alt="Preview">
+             </div>
          </div>
+
          <div class="p-6 pb-12 text-white bg-gradient-to-t from-black/90 to-transparent relative z-40 pointer-events-none">
              <p id="preview-name" class="text-xl font-bold text-center mb-1"></p>
              <p id="preview-meta" class="font-medium opacity-75 text-sm text-center"></p>
+             <p class="text-xs opacity-50 text-center mt-2">Double tap to zoom • Swipe to navigate</p>
          </div>
     </div>
 
@@ -363,7 +393,9 @@
             sortableBuilds: null,
             sortableTasks: null,
             selectedItems: new Set(),
-            isSelectionMode: false // Track mode
+            isSelectionMode: false,
+            currentImageList: [], // For navigation
+            currentImageIndex: 0
         };
 
         const loaderTimeout = setTimeout(() => {
@@ -421,7 +453,6 @@
                     state.currentBuild = build;
                     navigateTo('images', task);
                 } catch (e) {
-                    console.error("Failed to restore session", e);
                     navigateTo('builds');
                 }
             } else if (lastView === 'tasks' && lastBuild) {
@@ -429,7 +460,6 @@
                     const build = JSON.parse(lastBuild);
                     navigateTo('tasks', build);
                 } catch (e) {
-                    console.error("Failed to restore session", e);
                     navigateTo('builds');
                 }
             } else {
@@ -461,7 +491,6 @@
         }
 
         window.navigateTo = (view, data = null) => {
-            // Reset selection mode on navigation
             if (state.isSelectionMode) toggleSelectionMode();
             
             if (state.currentView === 'builds' && view !== 'builds') { 
@@ -537,7 +566,6 @@
             state.isSelectionMode = !state.isSelectionMode;
             state.selectedItems.clear();
             
-            // Update buttons text
             const btnIds = ['select-btn-builds', 'select-btn-tasks'];
             btnIds.forEach(id => {
                 const btn = document.getElementById(id);
@@ -548,7 +576,6 @@
                 }
             });
 
-            // Update Container Classes
             const listIds = ['builds-list', 'tasks-list'];
             listIds.forEach(id => {
                 const list = document.getElementById(id);
@@ -558,7 +585,6 @@
                 }
             });
             
-            // Uncheck visible checkboxes visually
             document.querySelectorAll('.custom-checkbox').forEach(cb => cb.checked = false);
             
             updateBulkActionBar();
@@ -566,7 +592,6 @@
 
         window.handleItemClick = (id, type) => {
             if (state.isSelectionMode) {
-                // Toggle Selection
                 const checkbox = document.querySelector(`div[data-id="${id}"] .custom-checkbox`);
                 if (state.selectedItems.has(id)) {
                     state.selectedItems.delete(id);
@@ -577,7 +602,6 @@
                 }
                 updateBulkActionBar();
             } else {
-                // Normal Navigation
                 if (type === 'build') {
                     window.selectBuild(id);
                 } else {
@@ -592,6 +616,7 @@
             const count = state.selectedItems.size;
             
             countEl.textContent = count;
+
             if (count > 0) {
                 bar.classList.remove('translate-y-full');
             } else {
@@ -604,9 +629,7 @@
             if (count === 0) return;
             
             const type = state.currentView === 'builds' ? 'folder(s)' : 'task(s)';
-            
-            // --- CONFIRMATION DIALOG ---
-            if (!confirm(`Are you sure you want to delete ${count} ${type}?\n\nThis cannot be undone and will delete all contained data.`)) return;
+            if (!confirm(`Are you sure you want to delete ${count} ${type}?\n\nThis cannot be undone.`)) return;
 
             const busyEl = document.getElementById('global-busy');
             document.getElementById('global-busy-msg').textContent = "Deleting...";
@@ -622,10 +645,8 @@
                         const buildId = id;
                         batch.delete(doc(db, `${BASE_PATH}/builds`, buildId));
                         opCount++;
-                        
                         const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId));
                         const tasksSnap = await getDocs(tasksQ);
-                        
                         for (const taskDoc of tasksSnap.docs) {
                             batch.delete(taskDoc.ref); 
                             opCount++;
@@ -652,12 +673,10 @@
                     if(opCount >= batchSize) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
                 }
                 if (opCount > 0) await batch.commit();
-
                 toggleSelectionMode(); 
-
             } catch(e) {
                 console.error(e);
-                alert("Some deletions failed. See console.");
+                alert("Some deletions failed.");
             } finally {
                 busyEl.classList.add('hidden');
             }
@@ -676,38 +695,28 @@
                 const zip = new JSZip();
                 let zipFilename = "Archive.zip";
 
-                // 1. DETERMINE FILENAME based on view and selection count
                 if (state.currentView === 'builds') {
                     if (state.selectedItems.size === 1) {
                         const id = state.selectedItems.values().next().value;
-                        if(state.tempBuilds[id]) {
-                            zipFilename = `${state.tempBuilds[id].name}.zip`;
-                        } else {
-                            zipFilename = "Build_Export.zip";
-                        }
+                        if(state.tempBuilds[id]) zipFilename = `${state.tempBuilds[id].name}.zip`;
+                        else zipFilename = "Build_Export.zip";
                     } else {
                         zipFilename = `${state.workspaceId}_Export.zip`;
                     }
                 } else if (state.currentView === 'tasks' && state.currentBuild) {
-                     // Keep task export logic simple or as is
                      zipFilename = `${state.currentBuild.name}_Selected_Tasks.zip`;
                 }
 
-                // 2. PROCESS ITEMS
                 for (const id of state.selectedItems) {
                     if (state.currentView === 'builds') {
                         const item = state.tempBuilds[id];
-                        // Create main folder for the Build
                         const buildFolder = zip.folder(item.name.replace(/[^a-z0-9\s-]/gi, ''));
-                        
                         const tasksQ = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', id), where('workspaceId', '==', state.workspaceId));
                         const tasksSnap = await getDocs(tasksQ);
                         
                         for (const taskDoc of tasksSnap.docs) {
                             const taskData = taskDoc.data();
-                            // Sanitize Task Name for filename prefix
                             const safeTaskName = taskData.name.replace(/[^a-z0-9\s-]/gi, '_');
-                            
                             const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', taskDoc.id));
                             const imgsSnap = await getDocs(imgsQ);
                             
@@ -715,23 +724,16 @@
                                 const data = imgDoc.data();
                                 let originalName = data.displayName || `image_${idx + 1}.jpg`;
                                 if (!originalName.toLowerCase().match(/\.(jpg|jpeg|png)$/)) originalName += '.jpg';
-                                
-                                // FLATTEN: Add Task Name prefix to file, put directly in Build Folder
                                 const finalFileName = `${safeTaskName}_${originalName}`;
                                 const base64Data = data.base64.split(',')[1];
-                                
                                 buildFolder.file(finalFileName, base64Data, {base64: true});
                             });
                         }
-
                     } else {
-                        // TASKS VIEW EXPORT (Preserves sub-folders as requested)
                         const item = state.tempTasks[id];
                         const taskFolder = zip.folder(item.name.replace(/[^a-z0-9\s-]/gi, ''));
-                        
                         const imgsQ = query(collection(db, `${BASE_PATH}/images`), where('taskId', '==', id), where('workspaceId', '==', state.workspaceId));
                         const imgsSnap = await getDocs(imgsQ);
-                        
                         imgsSnap.forEach((imgDoc, idx) => {
                             const data = imgDoc.data();
                             let filename = data.displayName || `image_${idx + 1}.jpg`;
@@ -741,12 +743,9 @@
                         });
                     }
                 }
-
                 const content = await zip.generateAsync({type:"blob"});
                 saveAs(content, zipFilename);
-                
                 toggleSelectionMode(); 
-
             } catch (e) {
                 console.error(e);
                 alert("Download failed.");
@@ -755,63 +754,39 @@
             }
         };
 
-        // --- CREATION LOGIC ---
         window.confirmCreateBuild = async () => {
             const input = document.getElementById('new-build-name'); 
-            const name = input.value.trim(); 
-            if (!name) return;
-            
+            const name = input.value.trim(); if (!name) return;
             try {
-                closeModal('new-build-modal'); 
-                input.value = '';
-                
-                // MODIFIED: order is negative timestamp to force top of list
+                closeModal('new-build-modal'); input.value = '';
                 await addDoc(collection(db, `${BASE_PATH}/builds`), { 
-                    workspaceId: state.workspaceId, 
-                    name, 
-                    createdAt: serverTimestamp(), 
-                    order: -Date.now(), // Negative value forces new item to top in ascending sort
-                    createdBy: state.user.uid 
+                    workspaceId: state.workspaceId, name, 
+                    createdAt: serverTimestamp(), order: -Date.now(), createdBy: state.user.uid 
                 });
-            } catch (e) {
-                console.error(e);
-                alert("Failed to create build. Check connection.");
-            }
+            } catch (e) { console.error(e); alert("Failed to create build."); }
         }
 
         window.confirmCreateTask = async () => {
             const input = document.getElementById('new-task-name'); 
-            const name = input.value.trim(); 
-            if (!name) return;
-            
+            const name = input.value.trim(); if (!name) return;
             try {
-                closeModal('new-task-modal'); 
-                input.value = '';
+                closeModal('new-task-modal'); input.value = '';
                 await addDoc(collection(db, `${BASE_PATH}/tasks`), { 
-                    workspaceId: state.workspaceId, 
-                    buildId: state.currentBuild.id, 
-                    name, 
-                    createdAt: serverTimestamp(), 
-                    order: serverTimestamp(), 
-                    createdBy: state.user.uid 
+                    workspaceId: state.workspaceId, buildId: state.currentBuild.id, name, 
+                    createdAt: serverTimestamp(), order: serverTimestamp(), createdBy: state.user.uid 
                 });
-            } catch (e) {
-                console.error(e);
-                alert("Failed to create task. Check connection.");
-            }
+            } catch (e) { console.error(e); alert("Failed to create task."); }
         }
 
-        // --- SORTING HELPERS ---
         function updateBuildsOrder() {
             const listEl = document.getElementById('builds-list');
             const items = listEl.querySelectorAll('.bg-white[data-id]');
             const batch = writeBatch(db);
             items.forEach((item, index) => {
                 const docId = item.getAttribute('data-id');
-                const docRef = doc(db, `${BASE_PATH}/builds`, docId);
-                batch.update(docRef, { order: index });
+                batch.update(doc(db, `${BASE_PATH}/builds`, docId), { order: index });
             });
-            batch.commit().catch(e => console.error("Failed to update build order", e));
+            batch.commit();
         }
 
         function updateTasksOrder() {
@@ -820,10 +795,9 @@
             const batch = writeBatch(db);
             items.forEach((item, index) => {
                 const docId = item.getAttribute('data-id');
-                const docRef = doc(db, `${BASE_PATH}/tasks`, docId);
-                batch.update(docRef, { order: index });
+                batch.update(doc(db, `${BASE_PATH}/tasks`, docId), { order: index });
             });
-            batch.commit().catch(e => console.error("Failed to update task order", e));
+            batch.commit();
         }
 
         function loadBuilds() {
@@ -833,12 +807,7 @@
 
             const q = query(collection(db, `${BASE_PATH}/builds`), where('workspaceId', '==', state.workspaceId));
             state.unsubBuilds = onSnapshot(q, (snapshot) => {
-                
-                if (state.sortableBuilds) {
-                    state.sortableBuilds.destroy();
-                    state.sortableBuilds = null; 
-                }
-
+                if (state.sortableBuilds) { state.sortableBuilds.destroy(); state.sortableBuilds = null; }
                 const listEl = document.getElementById('builds-list'); listEl.innerHTML = '';
                 state.tempBuilds = {}; 
 
@@ -846,11 +815,11 @@
                 else {
                     document.getElementById('no-builds-msg').classList.add('hidden');
                     let builds = []; snapshot.forEach(doc => builds.push({id: doc.id, ...doc.data()}));
-                    
                     builds.sort((a,b) => (a.order ?? (a.createdAt?.seconds || 0)) - (b.order ?? (b.createdAt?.seconds || 0)));
                     
                     builds.forEach(build => {
                         const date = build.createdAt ? new Date(build.createdAt.seconds * 1000).toLocaleDateString() : '';
+                        
                         const el = document.createElement('div');
                         el.className = 'bg-white p-5 rounded-2xl shadow-sm border border-gray-200 hover:border-blue-400 transition-all group relative cursor-pointer';
                         el.setAttribute('data-id', build.id);
@@ -867,7 +836,7 @@
                                 </div>
                                 
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="text-lg font-bold text-gray-900 break-words whitespace-normal leading-snug mb-1">${build.name}</h3>
+                                    <h3 class="text-lg font-bold text-gray-900 break-words whitespace-normal leading-snug">${build.name}</h3>
                                     <p class="text-sm text-gray-500 font-medium">${date}</p>
                                 </div>
 
@@ -878,20 +847,9 @@
                         state.tempBuilds[build.id] = build;
                         listEl.appendChild(el);
                     });
-
                     if(state.isSelectionMode) listEl.classList.add('selection-mode-active');
-
                     state.sortableBuilds = new Sortable(listEl, {
-                        animation: 150,
-                        ghostClass: 'build-ghost', 
-                        handle: '.drag-handle',    
-                        forceFallback: true, 
-                        delay: 100,          
-                        touchStartThreshold: 5, 
-                        fallbackClass: 'sortable-fallback-styling',
-                        onEnd: (evt) => {
-                            updateBuildsOrder(); 
-                        }
+                        animation: 150, ghostClass: 'build-ghost', handle: '.drag-handle', forceFallback: true, delay: 100, touchStartThreshold: 5, fallbackClass: 'sortable-fallback-styling', onEnd: updateBuildsOrder
                     });
                 }
             });
@@ -904,22 +862,14 @@
 
              const q = query(collection(db, `${BASE_PATH}/tasks`), where('buildId', '==', buildId), where('workspaceId', '==', state.workspaceId));
              state.unsubTasks = onSnapshot(q, (snapshot) => {
-
-                if (state.sortableTasks) {
-                    state.sortableTasks.destroy();
-                    state.sortableTasks = null;
-                }
-
+                if (state.sortableTasks) { state.sortableTasks.destroy(); state.sortableTasks = null; }
                  const listEl = document.getElementById('tasks-list'); listEl.innerHTML = '';
                  state.tempTasks = {};
-
                  if (snapshot.empty) { document.getElementById('no-tasks-msg').classList.remove('hidden'); } 
                  else {
                      document.getElementById('no-tasks-msg').classList.add('hidden');
                      let tasks = []; snapshot.forEach(doc => tasks.push({id: doc.id, ...doc.data()}));
-                     
                      tasks.sort((a,b) => (a.order ?? (a.createdAt?.seconds || 0)) - (b.order ?? (b.createdAt?.seconds || 0)));
-                     
                      tasks.forEach(task => {
                          const date = task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : '';
                          const el = document.createElement('div');
@@ -935,33 +885,19 @@
                             <div class="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-blue-200 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                             </div>
-                            
                             <div class="flex-1 min-w-0 py-1">
                                 <h4 class="text-lg font-bold text-gray-900 break-words whitespace-normal leading-snug mb-1">${task.name}</h4>
                                 <p class="text-sm font-medium text-gray-500">${date}</p>
                             </div>
-
                             <div class="selection-checkbox-wrapper flex-shrink-0">
                                 <input type="checkbox" class="custom-checkbox pointer-events-none">
                             </div>`;
-                            
                          state.tempTasks[task.id] = task;
                          listEl.appendChild(el);
                      });
-                     
                      if(state.isSelectionMode) listEl.classList.add('selection-mode-active');
-
                      state.sortableTasks = new Sortable(listEl, {
-                        animation: 150,
-                        ghostClass: 'task-ghost',
-                        handle: '.drag-handle',
-                        forceFallback: true, 
-                        delay: 100,          
-                        touchStartThreshold: 5,
-                        fallbackClass: 'sortable-fallback-styling',
-                        onEnd: (evt) => {
-                            updateTasksOrder();
-                        }
+                        animation: 150, ghostClass: 'task-ghost', handle: '.drag-handle', forceFallback: true, delay: 100, touchStartThreshold: 5, fallbackClass: 'sortable-fallback-styling', onEnd: updateTasksOrder
                     });
                  }
              });
@@ -974,19 +910,25 @@
             state.unsubImages = onSnapshot(q, (snapshot) => {
                 const gridEl = document.getElementById('images-grid'); gridEl.innerHTML = '';
                 state.imageCountInTask = snapshot.size;
+                state.currentImageList = []; // Reset list
+
                 if (snapshot.empty) { document.getElementById('no-images-msg').classList.remove('hidden'); } 
                 else {
                     document.getElementById('no-images-msg').classList.add('hidden');
                     let images = []; snapshot.forEach(doc => images.push({id: doc.id, ...doc.data()}));
                     images.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                    images.forEach(imgData => {
+                    
+                    state.currentImageList = images; // Store for navigation
+
+                    images.forEach((imgData, index) => {
                          const el = document.createElement('div');
                          el.className = 'relative aspect-square bg-gray-200 rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg transition-all active:scale-95';
                          el.innerHTML = `
                             <img src="${imgData.base64}" class="w-full h-full object-cover" loading="lazy" alt="${imgData.displayName || 'Site photo'}">
                             ${imgData.displayName ? `<div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 truncate">${imgData.displayName}</div>` : ''}
                          `;
-                         el.onclick = () => openImagePreview(imgData); gridEl.appendChild(el);
+                         el.onclick = () => openImagePreview(index); // Pass index
+                         gridEl.appendChild(el);
                     });
                 }
             });
@@ -997,18 +939,13 @@
             document.getElementById('upload-progress').classList.remove('hidden');
             try {
                 const compressedBase64 = await compressImage(file, 1024, 0.7);
-
                 const nextNum = state.imageCountInTask + 1;
                 const safeTaskName = state.currentTask.name.replace(/[^a-z0-9]/gi, '-');
                 const displayName = `${safeTaskName}_${nextNum}.jpg`;
 
                 await addDoc(collection(db, `${BASE_PATH}/images`), { 
-                    workspaceId: state.workspaceId, 
-                    taskId: state.currentTask.id, 
-                    base64: compressedBase64, 
-                    displayName: displayName,
-                    createdAt: serverTimestamp(), 
-                    createdBy: state.user.uid 
+                    workspaceId: state.workspaceId, taskId: state.currentTask.id, base64: compressedBase64, 
+                    displayName: displayName, createdAt: serverTimestamp(), createdBy: state.user.uid 
                 });
             } catch (error) { console.error(error); alert("Upload failed."); } 
             finally { document.getElementById('upload-progress').classList.add('hidden'); event.target.value = ''; }
@@ -1017,12 +954,7 @@
         window.deleteCurrentImage = async () => {
             if (!state.currentImageId || !confirm("Are you sure you want to delete this photo?")) return;
             closeModal('image-preview-modal');
-            try {
-                await deleteDoc(doc(db, `${BASE_PATH}/images`, state.currentImageId));
-            } catch (e) {
-                console.error("Delete failed", e);
-                alert("Failed to delete image.");
-            }
+            try { await deleteDoc(doc(db, `${BASE_PATH}/images`, state.currentImageId)); } catch (e) { alert("Failed to delete image."); }
         }
         
         window.downloadCurrentImage = () => {
@@ -1044,15 +976,189 @@
         }
 
         window.openModal = (id) => { document.getElementById(id).classList.remove('hidden'); if(id.includes('new')) setTimeout(() => document.getElementById(id.replace('-modal', '-name')).focus(), 100); }
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
-        window.openImagePreview = (imgData) => {
-            state.currentImageId = imgData.id;
-            state.currentImageData = imgData; // save for download
-            document.getElementById('preview-image-el').src = imgData.base64;
-            document.getElementById('preview-name').textContent = imgData.displayName || '';
-            document.getElementById('preview-meta').textContent = `Captured: ${imgData.createdAt ? new Date(imgData.createdAt.seconds * 1000).toLocaleString() : 'Just now'}`;
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+            // Reset zoom on close
+            if(id === 'image-preview-modal') resetZoom();
+        }
+
+        // --- IMAGE NAVIGATION & ZOOM LOGIC ---
+        let currentZoom = 1;
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        window.openImagePreview = (index) => {
+            state.currentImageIndex = index;
+            updatePreviewModal();
             document.getElementById('image-preview-modal').classList.remove('hidden');
         }
+
+        function updatePreviewModal() {
+            const imgData = state.currentImageList[state.currentImageIndex];
+            if(!imgData) return;
+            
+            state.currentImageId = imgData.id;
+            state.currentImageData = imgData;
+            
+            const imgEl = document.getElementById('preview-image-el');
+            imgEl.src = imgData.base64;
+            resetZoom(); // Always reset zoom when changing images
+
+            document.getElementById('preview-name').textContent = imgData.displayName || '';
+            document.getElementById('preview-meta').textContent = `Captured: ${imgData.createdAt ? new Date(imgData.createdAt.seconds * 1000).toLocaleString() : 'Just now'}`;
+        }
+
+        window.showNextImage = (e) => {
+            if(e) e.stopPropagation();
+            if (state.currentImageIndex < state.currentImageList.length - 1) {
+                state.currentImageIndex++;
+                updatePreviewModal();
+            }
+        }
+
+        window.showPrevImage = (e) => {
+            if(e) e.stopPropagation();
+            if (state.currentImageIndex > 0) {
+                state.currentImageIndex--;
+                updatePreviewModal();
+            }
+        }
+
+        // Add keydown listener for arrow keys
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('image-preview-modal').classList.contains('hidden')) return;
+            
+            if (e.key === 'ArrowLeft') {
+                showPrevImage(e);
+            } else if (e.key === 'ArrowRight') {
+                showNextImage(e);
+            } else if (e.key === 'Escape') {
+                closeModal('image-preview-modal');
+            }
+        });
+
+        // ZOOM HANDLERS
+        const imgEl = document.getElementById('preview-image-el');
+        const containerEl = document.getElementById('preview-container');
+        const modalEl = document.getElementById('image-preview-modal');
+
+        // Double tap/click to zoom
+        let lastTap = 0;
+        containerEl.addEventListener('touchend', (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                toggleZoom(e);
+                e.preventDefault();
+            }
+            lastTap = currentTime;
+        });
+        containerEl.addEventListener('dblclick', toggleZoom);
+
+        function toggleZoom(e) {
+            if (currentZoom === 1) {
+                currentZoom = 2.5;
+                imgEl.style.transform = `scale(${currentZoom})`;
+                imgEl.style.cursor = 'grab';
+                // Enable Pan
+                enablePan();
+            } else {
+                resetZoom();
+            }
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            imgEl.style.transform = `scale(1) translate(0px, 0px)`;
+            imgEl.style.cursor = 'default';
+            disablePan();
+        }
+
+        // PANNING LOGIC (Simple implementation)
+        let isPanning = false;
+        let startX = 0, startY = 0;
+        let translateX = 0, translateY = 0;
+
+        function enablePan() {
+            imgEl.addEventListener('mousedown', startPan);
+            imgEl.addEventListener('touchstart', startPan, {passive: false});
+        }
+        function disablePan() {
+            imgEl.removeEventListener('mousedown', startPan);
+            imgEl.removeEventListener('touchstart', startPan);
+            // Clean up other listeners if they exist
+            document.removeEventListener('mousemove', doPan);
+            document.removeEventListener('touchmove', doPan);
+            document.removeEventListener('mouseup', endPan);
+            document.removeEventListener('touchend', endPan);
+        }
+
+        function startPan(e) {
+            e.preventDefault();
+            isPanning = true;
+            startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+            startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
+            
+            document.addEventListener('mousemove', doPan);
+            document.addEventListener('touchmove', doPan, {passive: false});
+            document.addEventListener('mouseup', endPan);
+            document.addEventListener('touchend', endPan);
+        }
+
+        function doPan(e) {
+            if (!isPanning) return;
+            e.preventDefault();
+            const x = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+            const y = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+            
+            const deltaX = x - startX;
+            const deltaY = y - startY;
+            
+            // Improved Pan:
+            const currentTransX = translateX + deltaX / currentZoom;
+            const currentTransY = translateY + deltaY / currentZoom;
+
+            imgEl.style.transform = `scale(${currentZoom}) translate(${currentTransX}px, ${currentTransY}px)`;
+        }
+
+        function endPan(e) {
+            if(!isPanning) return;
+            isPanning = false;
+            
+            const x = e.type === 'mouseup' ? e.clientX : (e.changedTouches[0] ? e.changedTouches[0].clientX : startX);
+            const y = e.type === 'mouseup' ? e.clientY : (e.changedTouches[0] ? e.changedTouches[0].clientY : startY);
+            
+            translateX += (x - startX) / currentZoom;
+            translateY += (y - startY) / currentZoom;
+
+            document.removeEventListener('mousemove', doPan);
+            document.removeEventListener('touchmove', doPan);
+            document.removeEventListener('mouseup', endPan);
+            document.removeEventListener('touchend', endPan);
+        }
+
+        // SWIPE LOGIC (Only when NOT zoomed)
+        containerEl.addEventListener('touchstart', e => {
+            if(currentZoom > 1) return; // Don't swipe if zoomed
+            touchStartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+
+        containerEl.addEventListener('touchend', e => {
+            if(currentZoom > 1) return; // Don't swipe if zoomed
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, {passive: true});
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) {
+                showNextImage();
+            }
+            if (touchEndX > touchStartX + swipeThreshold) {
+                showPrevImage();
+            }
+        }
+
     </script>
 
     <script>
