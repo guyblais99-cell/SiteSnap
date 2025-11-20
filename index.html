@@ -270,14 +270,23 @@
             <span><span id="selected-count">0</span> Selected</span>
         </div>
         
-        <div class="flex items-center space-x-4 w-full sm:w-auto justify-end">
-            <button onclick="handleBulkDelete()" class="flex items-center bg-red-100 text-red-700 px-4 py-3 rounded-xl font-bold hover:bg-red-200 transition-colors">
+        <div class="flex items-center space-x-2 w-full sm:w-auto justify-end overflow-x-auto">
+             <div id="single-build-actions" class="hidden flex space-x-2 border-r border-gray-200 pr-2 mr-2">
+                <button onclick="openThumbnailManager()" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-xl font-bold hover:bg-yellow-200 transition-colors flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="hidden sm:inline">Cover</span>
+                </button>
+            </div>
+
+            <button onclick="handleBulkDelete()" class="flex items-center bg-red-100 text-red-700 px-3 py-2 rounded-xl font-bold hover:bg-red-200 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 <span class="hidden sm:inline">Delete</span>
             </button>
-            <button onclick="handleBulkDownload()" class="flex items-center bg-blue-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md">
+            <button onclick="handleBulkDownload()" class="flex items-center bg-blue-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -285,6 +294,25 @@
             </button>
         </div>
     </div>
+
+    <div id="thumbnail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-all">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Folder Cover Image</h3>
+            <div class="space-y-3">
+                <label class="block w-full bg-blue-50 text-blue-700 font-bold py-4 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors">
+                    Upload / Take Photo
+                    <input type="file" accept="image/*" class="hidden" onchange="handleThumbnailUpload(event)">
+                </label>
+                <button onclick="handleThumbnailRemove()" class="block w-full bg-red-50 text-red-700 font-bold py-4 rounded-xl hover:bg-red-100 transition-colors">
+                    Remove Current Cover
+                </button>
+                <button onclick="closeModal('thumbnail-modal')" class="block w-full text-gray-500 font-bold py-2 mt-2">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <div id="new-build-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-end sm:items-center justify-center p-4 backdrop-blur-sm transition-all">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 sm:p-8 animate-slide-up sm:animate-none shadow-2xl">
@@ -359,7 +387,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, deleteDoc, doc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, deleteDoc, doc, getDocs, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAcQbRXDz2lQDWtjXJDKxctYUeMwJVOB1s",
@@ -394,7 +422,7 @@
             sortableTasks: null,
             selectedItems: new Set(),
             isSelectionMode: false,
-            currentImageList: [], // For navigation
+            currentImageList: [],
             currentImageIndex: 0
         };
 
@@ -586,7 +614,6 @@
             });
             
             document.querySelectorAll('.custom-checkbox').forEach(cb => cb.checked = false);
-            
             updateBulkActionBar();
         };
 
@@ -613,9 +640,17 @@
         function updateBulkActionBar() {
             const bar = document.getElementById('bulk-action-bar');
             const countEl = document.getElementById('selected-count');
+            const singleBuildActions = document.getElementById('single-build-actions');
             const count = state.selectedItems.size;
             
             countEl.textContent = count;
+            
+            // Show Thumbnail button only if in Builds view and EXACTLY 1 item selected
+            if (state.currentView === 'builds' && count === 1) {
+                singleBuildActions.classList.remove('hidden');
+            } else {
+                singleBuildActions.classList.add('hidden');
+            }
 
             if (count > 0) {
                 bar.classList.remove('translate-y-full');
@@ -623,6 +658,67 @@
                 bar.classList.add('translate-y-full');
             }
         }
+
+        // --- THUMBNAIL LOGIC ---
+        window.openThumbnailManager = () => {
+            // Double check we have 1 item
+            if (state.selectedItems.size !== 1) return;
+            document.getElementById('thumbnail-modal').classList.remove('hidden');
+        }
+
+        window.handleThumbnailUpload = async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const buildId = state.selectedItems.values().next().value;
+            if (!buildId) return;
+
+            // Close modal and show busy
+            closeModal('thumbnail-modal');
+            const busyEl = document.getElementById('global-busy');
+            document.getElementById('global-busy-msg').textContent = "Updating Cover...";
+            busyEl.classList.remove('hidden');
+
+            try {
+                // Compress to small thumbnail (200px width, 0.6 quality)
+                const thumbnailBase64 = await compressImage(file, 200, 0.6);
+                
+                const docRef = doc(db, `${BASE_PATH}/builds`, buildId);
+                await updateDoc(docRef, { thumbnail: thumbnailBase64 });
+                
+                // Exit selection mode on success
+                toggleSelectionMode();
+
+            } catch (e) {
+                console.error(e);
+                alert("Failed to update cover image.");
+            } finally {
+                busyEl.classList.add('hidden');
+                event.target.value = ''; // Reset input
+            }
+        }
+
+        window.handleThumbnailRemove = async () => {
+             const buildId = state.selectedItems.values().next().value;
+             if (!buildId) return;
+             
+             closeModal('thumbnail-modal');
+             const busyEl = document.getElementById('global-busy');
+             document.getElementById('global-busy-msg').textContent = "Removing Cover...";
+             busyEl.classList.remove('hidden');
+             
+             try {
+                 const docRef = doc(db, `${BASE_PATH}/builds`, buildId);
+                 await updateDoc(docRef, { thumbnail: null }); // Remove field
+                 toggleSelectionMode();
+             } catch(e) {
+                 console.error(e);
+                 alert("Failed to remove cover.");
+             } finally {
+                 busyEl.classList.add('hidden');
+             }
+        }
+
 
         window.handleBulkDelete = async () => {
             const count = state.selectedItems.size;
@@ -825,15 +921,21 @@
                         el.setAttribute('data-id', build.id);
                         el.onclick = () => window.handleItemClick(build.id, 'build');
                         
+                        // THUMBNAIL LOGIC
+                        let iconHtml = '';
+                        if (build.thumbnail) {
+                            iconHtml = `<img src="${build.thumbnail}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 mr-4 flex-shrink-0" alt="Cover">`;
+                        } else {
+                            iconHtml = `<div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg></div>`;
+                        }
+
                         el.innerHTML = `
                             <div class="flex items-center w-full">
                                 <div class="drag-handle text-gray-400 p-2 cursor-grab active:cursor-grabbing touch-none mr-1 flex-shrink-0" onclick="event.stopPropagation()">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                                 </div>
                                 
-                                <div class="bg-yellow-100 p-3 rounded-xl mr-4 flex-shrink-0 group-hover:bg-yellow-200 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-600" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                                </div>
+                                ${iconHtml}
                                 
                                 <div class="flex-1 min-w-0">
                                     <h3 class="text-lg font-bold text-gray-900 break-words whitespace-normal leading-snug">${build.name}</h3>
@@ -978,7 +1080,6 @@
         window.openModal = (id) => { document.getElementById(id).classList.remove('hidden'); if(id.includes('new')) setTimeout(() => document.getElementById(id.replace('-modal', '-name')).focus(), 100); }
         window.closeModal = (id) => {
             document.getElementById(id).classList.add('hidden');
-            // Reset zoom on close
             if(id === 'image-preview-modal') resetZoom();
         }
 
@@ -1024,17 +1125,11 @@
             }
         }
 
-        // Add keydown listener for arrow keys
         document.addEventListener('keydown', (e) => {
             if (document.getElementById('image-preview-modal').classList.contains('hidden')) return;
-            
-            if (e.key === 'ArrowLeft') {
-                showPrevImage(e);
-            } else if (e.key === 'ArrowRight') {
-                showNextImage(e);
-            } else if (e.key === 'Escape') {
-                closeModal('image-preview-modal');
-            }
+            if (e.key === 'ArrowLeft') showPrevImage(e);
+            else if (e.key === 'ArrowRight') showNextImage(e);
+            else if (e.key === 'Escape') closeModal('image-preview-modal');
         });
 
         // ZOOM HANDLERS
@@ -1042,7 +1137,6 @@
         const containerEl = document.getElementById('preview-container');
         const modalEl = document.getElementById('image-preview-modal');
 
-        // Double tap/click to zoom
         let lastTap = 0;
         containerEl.addEventListener('touchend', (e) => {
             const currentTime = new Date().getTime();
@@ -1060,7 +1154,6 @@
                 currentZoom = 2.5;
                 imgEl.style.transform = `scale(${currentZoom})`;
                 imgEl.style.cursor = 'grab';
-                // Enable Pan
                 enablePan();
             } else {
                 resetZoom();
@@ -1074,7 +1167,7 @@
             disablePan();
         }
 
-        // PANNING LOGIC (Simple implementation)
+        // PANNING LOGIC
         let isPanning = false;
         let startX = 0, startY = 0;
         let translateX = 0, translateY = 0;
@@ -1086,7 +1179,6 @@
         function disablePan() {
             imgEl.removeEventListener('mousedown', startPan);
             imgEl.removeEventListener('touchstart', startPan);
-            // Clean up other listeners if they exist
             document.removeEventListener('mousemove', doPan);
             document.removeEventListener('touchmove', doPan);
             document.removeEventListener('mouseup', endPan);
@@ -1098,7 +1190,6 @@
             isPanning = true;
             startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
             startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
-            
             document.addEventListener('mousemove', doPan);
             document.addEventListener('touchmove', doPan, {passive: false});
             document.addEventListener('mouseup', endPan);
@@ -1110,53 +1201,42 @@
             e.preventDefault();
             const x = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
             const y = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
-            
             const deltaX = x - startX;
             const deltaY = y - startY;
-            
-            // Improved Pan:
             const currentTransX = translateX + deltaX / currentZoom;
             const currentTransY = translateY + deltaY / currentZoom;
-
             imgEl.style.transform = `scale(${currentZoom}) translate(${currentTransX}px, ${currentTransY}px)`;
         }
 
         function endPan(e) {
             if(!isPanning) return;
             isPanning = false;
-            
             const x = e.type === 'mouseup' ? e.clientX : (e.changedTouches[0] ? e.changedTouches[0].clientX : startX);
             const y = e.type === 'mouseup' ? e.clientY : (e.changedTouches[0] ? e.changedTouches[0].clientY : startY);
-            
             translateX += (x - startX) / currentZoom;
             translateY += (y - startY) / currentZoom;
-
             document.removeEventListener('mousemove', doPan);
             document.removeEventListener('touchmove', doPan);
             document.removeEventListener('mouseup', endPan);
             document.removeEventListener('touchend', endPan);
         }
 
-        // SWIPE LOGIC (Only when NOT zoomed)
+        // SWIPE LOGIC
         containerEl.addEventListener('touchstart', e => {
-            if(currentZoom > 1) return; // Don't swipe if zoomed
+            if(currentZoom > 1) return; 
             touchStartX = e.changedTouches[0].screenX;
         }, {passive: true});
 
         containerEl.addEventListener('touchend', e => {
-            if(currentZoom > 1) return; // Don't swipe if zoomed
+            if(currentZoom > 1) return; 
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
         }, {passive: true});
 
         function handleSwipe() {
             const swipeThreshold = 50;
-            if (touchEndX < touchStartX - swipeThreshold) {
-                showNextImage();
-            }
-            if (touchEndX > touchStartX + swipeThreshold) {
-                showPrevImage();
-            }
+            if (touchEndX < touchStartX - swipeThreshold) showNextImage();
+            if (touchEndX > touchStartX + swipeThreshold) showPrevImage();
         }
 
     </script>
