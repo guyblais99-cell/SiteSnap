@@ -439,7 +439,9 @@
             selectedItems: new Set(),
             isSelectionMode: false,
             currentImageList: [],
-            currentImageIndex: 0
+            currentImageIndex: 0,
+            tempBuilds: {},
+            tempTasks: {}
         };
 
         const loaderTimeout = setTimeout(() => {
@@ -513,16 +515,51 @@
 
         window.signOutWorkspace = () => {
             if (confirm("Sign out of current workspace?")) {
-                state.workspaceId = null;
+                // 1. Unsubscribe from current listeners
+                if (state.unsubBuilds) state.unsubBuilds();
+                if (state.unsubTasks) state.unsubTasks();
+                if (state.unsubImages) state.unsubImages();
+                
+                // 2. Clear Local Storage
                 localStorage.removeItem('lastWorkspaceId');
                 localStorage.removeItem('lastView');
                 localStorage.removeItem('lastBuild');
                 localStorage.removeItem('lastTask');
 
-                if (state.unsubBuilds) state.unsubBuilds();
-                if (state.unsubTasks) state.unsubTasks();
-                if (state.unsubImages) state.unsubImages();
+                // 3. HARD RESET STATE (Fix for stale data)
+                const currentUser = state.user; // Preserve firebase auth user
+                state = {
+                    currentView: 'login',
+                    workspaceId: null,
+                    currentBuild: null,
+                    currentTask: null,
+                    user: currentUser, 
+                    currentImageId: null,
+                    currentImageData: null,
+                    imageCountInTask: 0,
+                    unsubBuilds: null,
+                    unsubTasks: null,
+                    unsubImages: null,
+                    sortableBuilds: null,
+                    sortableTasks: null,
+                    selectedItems: new Set(),
+                    isSelectionMode: false,
+                    currentImageList: [],
+                    currentImageIndex: 0,
+                    tempBuilds: {},
+                    tempTasks: {}
+                };
+
+                // 4. Clear DOM lists explicitly to prevent ghosting
+                document.getElementById('builds-list').innerHTML = '';
+                document.getElementById('tasks-list').innerHTML = '';
+                document.getElementById('images-grid').innerHTML = '';
+                document.getElementById('current-build-title').textContent = 'Build Name';
+                document.getElementById('current-task-title').textContent = 'Task Name';
+                document.getElementById('workspace-badge').textContent = '';
+                document.getElementById('workspace-id-input').value = '';
                 
+                // 5. Reset UI
                 document.getElementById('main-nav').classList.add('hidden');
                 ['builds-view', 'tasks-view', 'images-view'].forEach(id => {
                      document.getElementById(id).classList.remove('active-view');
@@ -530,7 +567,6 @@
                 });
                 document.getElementById('login-view').classList.remove('hidden-view');
                 document.getElementById('login-view').classList.add('active-view');
-                document.getElementById('workspace-id-input').value = '';
             }
         }
 
