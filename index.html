@@ -175,17 +175,17 @@
                     <button type="button" onclick="triggerGalleryPicker()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-4 rounded-2xl cursor-pointer active:scale-95 transition-all flex items-center justify-center border border-gray-200 shadow-sm" title="Upload from Gallery">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </button>
-                    <input id="gallery-input" type="file" accept="image/*" multiple="multiple" class="hidden" onchange="handleImageUpload(event)">
+                    <input id="gallery-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" multiple="multiple" class="hidden" onchange="handleImageUpload(event)">
                     <label for="camera-input" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl shadow-lg cursor-pointer active:scale-95 transition-all flex items-center justify-center" title="Take a Photo">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        <input id="camera-input" type="file" accept="image/*" capture="environment" multiple="multiple" class="hidden" onchange="handleImageUpload(event)">
+                        <input id="camera-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" capture="environment" multiple="multiple" class="hidden" onchange="handleImageUpload(event)">
                     </label>
                  </div>
             </div>
 
             <div id="upload-progress" class="hidden mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-200 flex items-center animate-pulse">
                 <div class="loader ease-linear rounded-full border-2 border-t-2 border-blue-600 h-5 w-5 mr-3"></div>
-                <span class="text-blue-800 font-bold">Compressing & Uploading...</span>
+                <span id="upload-progress-msg" class="text-blue-800 font-bold">Compressing & Uploading...</span>
             </div>
 
             <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-20"></div>
@@ -1061,10 +1061,13 @@
                 const safeTaskName = state.currentTask.name.replace(/[^a-z0-9]/gi, '-');
                 let nextNum = state.imageCountInTask + 1;
 
-                for (const file of files) {
+                for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+                    const file = files[fileIndex];
+                    document.getElementById('upload-progress-msg').textContent = `Compressing photo ${fileIndex + 1} of ${files.length}...`;
                     const compressedBase64 = await compressImage(file, 1024, 0.7);
                     const displayName = `${safeTaskName}_${nextNum}.jpg`;
 
+                    document.getElementById('upload-progress-msg').textContent = `Uploading photo ${fileIndex + 1} of ${files.length}...`;
                     await addDoc(collection(db, `${BASE_PATH}/images`), {
                         workspaceId: state.workspaceId, taskId: state.currentTask.id, base64: compressedBase64,
                         displayName: displayName, createdAt: serverTimestamp(), createdBy: state.user.uid
@@ -1074,8 +1077,10 @@
                 }
             } catch (error) {
                 console.error(error);
-                alert("Upload failed.");
+                const detail = error?.message ? `\n\n${error.message}` : '';
+                alert(`Upload failed. The photo may be too large or in a format this device cannot read.${detail}`);
             } finally {
+                document.getElementById('upload-progress-msg').textContent = 'Compressing & Uploading...';
                 document.getElementById('upload-progress').classList.add('hidden');
             }
         }
@@ -1090,9 +1095,7 @@
                         multiple: true,
                         types: [{
                             description: 'Images',
-                            accept: {
-                                'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.heif']
-                            }
+                            accept: { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/webp': ['.webp'], 'image/gif': ['.gif'], 'image/bmp': ['.bmp'] }
                         }]
                     });
 
@@ -1129,14 +1132,48 @@
 
         function compressImage(file, maxWidth, quality) {
             return new Promise((resolve, reject) => {
-                const reader = new FileReader(); reader.readAsDataURL(file);
-                reader.onload = (ev) => { const img = new Image(); img.src = ev.target.result;
+                if (!file || !file.type || !file.type.startsWith('image/')) {
+                    reject(new Error('The selected file is not a supported image.'));
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('The device could not read the selected file.'));
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('This image format is not supported by this device.'));
                     img.onload = () => {
-                        let w = img.width, h = img.height; if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
-                        const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-                        canvas.getContext('2d').drawImage(img, 0, 0, w, h); resolve(canvas.toDataURL('image/jpeg', quality));
-                    }; img.onerror = reject;
-                }; reader.onerror = reject;
+                        let width = img.width;
+                        let height = img.height;
+                        if (!width || !height) { reject(new Error('The image has no readable dimensions.')); return; }
+                        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        if (!context) { reject(new Error('This device cannot prepare the image for upload.')); return; }
+
+                        let output = '';
+                        let currentQuality = quality;
+                        for (let attempt = 0; attempt < 5; attempt++) {
+                            canvas.width = width;
+                            canvas.height = height;
+                            context.clearRect(0, 0, width, height);
+                            context.drawImage(img, 0, 0, width, height);
+                            output = canvas.toDataURL('image/jpeg', currentQuality);
+                            if (output.length <= 850000) break;
+                            currentQuality *= 0.7;
+                            if (attempt === 2) { width = Math.round(width * 0.8); height = Math.round(height * 0.8); }
+                        }
+
+                        if (!output || output.length > 950000) {
+                            reject(new Error('The photo is too large for this app to store. Try a smaller image.'));
+                        } else {
+                            resolve(output);
+                        }
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
             });
         }
 
