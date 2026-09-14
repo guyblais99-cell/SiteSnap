@@ -187,6 +187,7 @@
                 <div class="loader ease-linear rounded-full border-2 border-t-2 border-blue-600 h-5 w-5 mr-3"></div>
                 <span id="upload-progress-msg" class="text-blue-800 font-bold">Compressing & Uploading...</span>
             </div>
+            <div id="upload-error" class="hidden mb-6 bg-red-50 p-4 rounded-2xl border border-red-200 text-red-800 font-medium whitespace-pre-line"></div>
 
             <div id="images-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pb-20"></div>
             <div id="no-images-msg" class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 mt-4">
@@ -1056,6 +1057,9 @@
         async function uploadImages(files) {
             if (files.length === 0 || !state.currentTask) return;
 
+            const uploadError = document.getElementById('upload-error');
+            uploadError.classList.add('hidden');
+            uploadError.textContent = '';
             document.getElementById('upload-progress').classList.remove('hidden');
             try {
                 const safeTaskName = state.currentTask.name.replace(/[^a-z0-9]/gi, '-');
@@ -1078,7 +1082,8 @@
             } catch (error) {
                 console.error(error);
                 const detail = error?.message ? `\n\n${error.message}` : '';
-                alert(`Upload failed. The photo may be too large or in a format this device cannot read.${detail}`);
+                uploadError.textContent = `Upload failed. The photo may be too large or in a format this device cannot read.${detail}`;
+                uploadError.classList.remove('hidden');
             } finally {
                 document.getElementById('upload-progress-msg').textContent = 'Compressing & Uploading...';
                 document.getElementById('upload-progress').classList.add('hidden');
@@ -1132,7 +1137,10 @@
 
         function compressImage(file, maxWidth, quality) {
             return new Promise((resolve, reject) => {
-                if (!file || !file.type || !file.type.startsWith('image/')) {
+                const fileName = (file?.name || '').toLowerCase();
+                const hasImageType = file?.type && file.type.startsWith('image/');
+                const hasImageExtension = /\.(jpg|jpeg|png|webp|gif|bmp)$/.test(fileName);
+                if (!file || (!hasImageType && !hasImageExtension)) {
                     reject(new Error('The selected file is not a supported image.'));
                     return;
                 }
